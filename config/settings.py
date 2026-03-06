@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-2lzftp8!mhn9)2&cl8^$$0b(jjsunvp&5=c)#bic#da^ah35wl
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -73,9 +73,13 @@ WSGI_APPLICATION = "config.wsgi.application"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'acubot_db',
+        'USER': 'acubot_user',
+        'PASSWORD': 'supergizlisifre',
+        'HOST': 'db',  
+        'PORT': '5432',
     }
 }
 
