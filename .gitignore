@@ -1,17 +1,14 @@
-# IDE Dosyaları
+
 .idea/
 .vscode/
 
-# Python & Django
 __pycache__/
 *.pyc
 db.sqlite3
 media/
 static/
 
-# Ortam Değişkenleri
 .env
 
-# Sanal Ortam
 venv/
 env/

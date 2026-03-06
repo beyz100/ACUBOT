@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_DB=acubot_db
+      - POSTGRES_USER=acubot_user
+      - POSTGRES_PASSWORD=supergizlisifre
+      - POSTGRES_HOST=db
+
+  db:
+    image: postgres:15-alpine 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=acubot_db
+      - POSTGRES_USER=acubot_user
+      - POSTGRES_PASSWORD=supergizlisifre
+    ports:
+      - "5432:5432"
+
+  llm:
+    image: ollama/ollama  
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  postgres_data:
+  ollama_data:
