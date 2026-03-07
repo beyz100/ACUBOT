@@ -8,7 +8,7 @@ import json
 def scrape_bologna_data():
     # Chrome'u arka planda (headless) çalıştırmak için ayarlar
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless') 
+    # options.add_argument('--headless') 
     
     # WebDriver'ı başlat
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
@@ -25,13 +25,9 @@ def scrape_bologna_data():
     bologna_data = []
     
     try:
-        # Örnek: Sayfadaki tüm ders tablolarını veya satırlarını bulma
-        # Not: A'nın sayfaya sağ tıklayıp "İncele" diyerek doğru class veya id'leri bulması gerekecek.
-        # Bu örnekte rastgele bir CSS seçici kullanılmıştır.
         course_rows = driver.find_elements(By.CSS_SELECTOR, "table tbody tr")
         
         for row in course_rows:
-            # Satırdaki hücreleri al
             cells = row.find_elements(By.TAG_NAME, "td")
             if len(cells) > 2:
                 course_code = cells[0].text.strip()
@@ -49,9 +45,8 @@ def scrape_bologna_data():
         print(f"Veri çekerken bir hata oluştu: {e}")
         
     finally:
-        driver.quit() # Tarayıcıyı mutlaka kapat
+        driver.quit()
 
-    # Verileri kaydet
     with open("bologna_data.json", "w", encoding="utf-8") as f:
         json.dump(bologna_data, f, ensure_ascii=False, indent=4)
         
