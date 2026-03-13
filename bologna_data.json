@@ -1,230 +1,276 @@
 [
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CHE 101",
         "name": "Genel Kimya",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 101",
         "name": "Programlamaya Giriş",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ENG 105",
         "name": "Akademik Amaçlar için İngilizce I",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "MAT 111",
         "name": "Kalkülüs I",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "PHY 101",
         "name": "Fizik I",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "TUR 101",
         "name": "Türk Dili I",
         "ects": "2"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "BME 102",
         "name": "Mühendisler için Biyolojik Bilimler",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 102",
         "name": "Programlama Pratiği",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ENG 106",
         "name": "Akademik Amaçlar için İngilizce II",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "MAT 112",
         "name": "Kalkülüs II",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "PHY 102",
         "name": "Fizik II",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "TUR 102",
         "name": "Türk Dili II",
         "ects": "2"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "BME 105",
         "name": "Bilimde Beşeri Yaklaşımlar",
         "ects": "1"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "BME 207",
         "name": "Mühendisler için Ekonomi",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 201",
         "name": "Algoritmalar I",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "MAT 211",
         "name": "Lineer Cebir",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "MAT 241",
         "name": "Ayrık Matematik",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ACU 2001",
         "name": "Seçmeli Ders",
         "ects": "3"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "BME 210",
         "name": "Mühendislik Etiği",
         "ects": "4"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "BME 218",
         "name": "Olasılık ve Biyoistatistik",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 200",
         "name": "Zorunlu Yaz Stajı",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 202",
         "name": "Algoritmalar II",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 220",
         "name": "Web Programlama",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "MAT 222",
         "name": "Diferansiyel Denklemler",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ACU 2002",
         "name": "Seçmeli Ders",
         "ects": "3"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ATA 101",
         "name": "Atatürk İlkeleri ve İnkılap Tarihi I",
         "ects": "2"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 301",
         "name": "Bilgisayar Mimarisi",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 311",
         "name": "Yazılım",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 321",
         "name": "Veri Sistemleri",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 331",
         "name": "Keşifsel Veri Analizi",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ACU 3001",
         "name": "Seçmeli Ders",
         "ects": "3"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ATA 102",
         "name": "Atatürk İlkeleri ve İnkılap Tarihi II",
         "ects": "2"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "BME 320",
         "name": "Proje Yönetimi",
         "ects": "3"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 300",
         "name": "Zorunlu Yaz Stajı",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 302",
         "name": "İşletim Sistemleri",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 312",
         "name": "Bilgisayar Ağları ve Sosyal Ağlar",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 322",
         "name": "Bulut Bilişim",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 332",
         "name": "Veri Bilimi ve Yapay Zeka",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 403",
         "name": "Bitirme Tasarım Projesi I",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ACU 4001",
         "name": "Seçmeli Ders",
         "ects": "6"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ADS 4001",
         "name": "Genel Seçmeli",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 4001",
         "name": "Teknik Seçmeli",
         "ects": "14"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 404",
         "name": "Bitirme Tasarım Projesi II",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ACU 4002",
         "name": "Seçmeli Ders",
         "ects": "3"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "ADS 4002",
         "name": "Genel Seçmeli",
         "ects": "5"
     },
     {
+        "department": "Bilgisayar Mühendisliği",
         "code": "CSE 4002",
         "name": "Teknik Seçmeli",
         "ects": "21"
