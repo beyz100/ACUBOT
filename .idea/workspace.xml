@@ -4,10 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="dcc8d137-021f-4466-b806-0fccf83fad0c" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/courses/serializers.py" afterDir="false" />
+    <list default="true" id="dcc8d137-021f-4466-b806-0fccf83fad0c" name="Changes" comment="added serializers for Faculty, Department, and Course models">
+      <change afterPath="$PROJECT_DIR$/courses/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/config/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/courses/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/courses/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,6 +20,9 @@
     <persistenceIdMap>
       <entry key="_C:/Users/ceren/PycharmProjects/ACUBOT" value="3AZJ8s8HLmrAPYcaTBQEUKTe68W" />
     </persistenceIdMap>
+  </component>
+  <component name="CopilotUserSelectedChatMode">
+    <option name="chatModeId" value="Agent" />
   </component>
   <component name="CopilotUserSelectedModel">
     <selectedModels>
@@ -30,6 +35,7 @@
       <list>
         <option value="Dockerfile" />
         <option value="SQL File" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -104,7 +110,7 @@
       <workItem from="1772794006773" duration="2654000" />
       <workItem from="1772797042551" duration="273000" />
       <workItem from="1772797321603" duration="53000" />
-      <workItem from="1773474386489" duration="1510000" />
+      <workItem from="1773474386489" duration="2896000" />
     </task>
     <task id="LOCAL-00001" summary="created docker">
       <option name="closed" value="true" />
@@ -114,7 +120,15 @@
       <option name="project" value="LOCAL" />
       <updated>1772796862999</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="added serializers for Faculty, Department, and Course models">
+      <option name="closed" value="true" />
+      <created>1773477302014</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1773477302014</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -122,7 +136,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="created docker" />
-    <option name="LAST_COMMIT_MESSAGE" value="created docker" />
+    <MESSAGE value="added serializers for Faculty, Department, and Course models" />
+    <option name="LAST_COMMIT_MESSAGE" value="added serializers for Faculty, Department, and Course models" />
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>
