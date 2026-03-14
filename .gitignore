@@ -12,3 +12,4 @@ static/
 
 venv/
 env/
+/.ai/mcp/mcp.json
