@@ -13,10 +13,10 @@ def scrape_page(url):
             soup = BeautifulSoup(response.text, "html.parser")
             return soup
         else:
-            print(f"Hata: {url} - {response.status_code}")
+            print(f"Error: {url} - {response.status_code}")
             return None
     except Exception as e:
-        print(f"İstek hatası: {e}")
+        print(f"Request Error: {e}")
         return None
 
 def scrape_homepage():
@@ -57,7 +57,7 @@ def main():
     with open("acibadem_data.json", "w", encoding="utf-8") as f:
         json.dump(all_data, f, ensure_ascii=False, indent=4)
 
-    print("Scraping tamamlandı. Veriler acibadem_data.json dosyasına kaydedildi.")
+    print("Scraping completed. Data saved into acibadem_data.json file.")
 
 if __name__ == "__main__":
     main()
