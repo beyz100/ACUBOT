@@ -10,7 +10,7 @@ def scrape_bologna_data(faculty_id, department_id, department_name, driver):
     course_list = []
     url = f"https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=tr&curOp=showPac&curUnit={faculty_id}&curSunit={department_id}#"
 
-    print(f"\n[{department_name}] Yükleniyor... URL: {url}")
+    print(f"\n[{department_name}] Loading... URL: {url}")
     driver.get(url)
 
     try:
@@ -24,7 +24,7 @@ def scrape_bologna_data(faculty_id, department_id, department_name, driver):
             driver.execute_script("arguments[0].click();", courses_tab)
             time.sleep(5)
         except Exception as e:
-            print(f"Sekme tıklama atlandı: {e}")
+            print(f"Tab click skipped: {e}")
 
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
 
@@ -35,7 +35,7 @@ def scrape_bologna_data(faculty_id, department_id, department_name, driver):
             rows = driver.find_elements(By.CSS_SELECTOR, "tr.borderColorLisghtGray")
 
             if len(rows) > 0:
-                print(f"[{department_name}] {len(rows)} ders bulundu. İşleniyor...")
+                print(f"[{department_name}] {len(rows)} courses found. Processing...")
 
                 for row in rows:
                     cells = row.find_elements(By.TAG_NAME, "td")
