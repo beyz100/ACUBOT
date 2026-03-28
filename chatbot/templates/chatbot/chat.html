@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ACUBOT — Chat</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4f;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --user-bg: #243447;
+      --bot-bg: #1e2d22;
+    }
+    * { box-sizing: border-box; }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 4rem;
+    }
+    header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .error {
+      background: #3d1f24;
+      border: 1px solid #6b2d36;
+      color: #f5c6cb;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    .thread {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      min-height: 120px;
+    }
+    .bubble {
+      max-width: 90%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .bubble.user {
+      align-self: flex-end;
+      background: var(--user-bg);
+    }
+    .bubble.assistant {
+      align-self: flex-start;
+      background: var(--bot-bg);
+    }
+    .bubble .label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .empty {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+    .composer {
+      position: sticky;
+      bottom: 0;
+      padding-top: 1rem;
+      background: linear-gradient(to top, var(--bg) 70%, transparent);
+    }
+    form.compose {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    textarea {
+      width: 100%;
+      min-height: 4.5rem;
+      resize: vertical;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    button[type="submit"] {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.55rem 1.15rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button[type="submit"]:hover {
+      filter: brightness(1.08);
+    }
+    button.secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    button.secondary:hover {
+      color: var(--text);
+      border-color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ACUBOT</h1>
+      <p>Ask about Acibadem University courses. Answers use the assistant pipeline (same as the API).</p>
+    </header>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <div class="thread" id="thread" aria-live="polite">
+      {% if history %}
+        {% for row in history %}
+          <div class="bubble {{ row.role }}">
+            <span class="label">{% if row.role == "user" %}You{% else %}ACUBOT{% endif %}</span>
+            {{ row.text }}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="empty">No messages yet. Type a question below.</p>
+      {% endif %}
+    </div>
+
+    <div class="composer">
+      <form class="compose" method="post" action="">
+        {% csrf_token %}
+        <label for="message" class="visually-hidden">Your question</label>
+        <textarea id="message" name="message" placeholder="e.g. Which courses are in the Computer Engineering department?" rows="3" autofocus></textarea>
+        <div class="actions">
+          <button type="submit">Send</button>
+          {% if history %}
+            <button type="submit" class="secondary" name="clear_history" value="1" formnovalidate>Clear history</button>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
