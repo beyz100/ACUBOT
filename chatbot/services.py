@@ -20,7 +20,8 @@ def ask_acubot(user_message):
     context_text = format_context_for_llm(context)
 
     prompt = f"""You are ACUBOT, a polite, energetic, and informal assistant bot helping Acibadem University students.
-Below is the course information retrieved from the database. Answer the student's question using ONLY this information.
+Below is the information retrieved from our database, which may include Course details, Faculties, Departments, or General University Information.
+Answer the student's question using ONLY this provided information.
 If the answer is not available in this information, honestly say 'Sorry, I cannot find this information in my database right now.' Do not make up answers.
 
 {context_text}
