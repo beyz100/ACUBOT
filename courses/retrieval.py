@@ -67,19 +67,19 @@ def retrieve_courses_hybrid(query, limit=10):
 
 
 def retrieve_university_info(query, limit=5):
-    search_query = SearchQuery(query, search_type='websearch')
-    
-    search_vector = SearchVector('key', weight='A') + \
-                    SearchVector('value', weight='B') + \
-                    SearchVector('category', weight='C')
-    
+    # Try trigram similarity first since UniversityInfo fields are short
     info = UniversityInfo.objects.annotate(
-        search=search_vector,
-        rank=SearchRank(search_vector, search_query)
+        key_sim=TrigramSimilarity('key', query),
+        val_sim=TrigramSimilarity('value', query),
+        cat_sim=TrigramSimilarity('category', query)
     ).filter(
-        search=search_query
-    ).order_by('-rank')[:limit]
+        Q(key_sim__gt=0.1) | Q(val_sim__gt=0.1) | Q(cat_sim__gt=0.1)
+    ).order_by('-val_sim', '-key_sim')[:limit]
     
+    # Fallback to basic contact info if nothing matches (very useful for general queries)
+    if not info:
+        info = UniversityInfo.objects.filter(category='contact')[:limit]
+        
     return list(info)
 
 
