@@ -24,8 +24,8 @@ def chat_ui(request):
         if not message:
             error = "Please enter a question."
         else:
-            reply = ask_acubot(message)
             history = request.session.get(CHAT_HISTORY_SESSION_KEY, [])
+            reply = ask_acubot(message, conversation_history=history)
             history.extend(
                 [
                     {"role": "user", "text": message},
@@ -49,6 +49,7 @@ def chat_ui(request):
 @api_view(['POST'])
 def chat_with_acubot(request):
     user_message = request.data.get('message')
+    conversation_history = request.data.get('history', [])
 
     if not user_message:
         return Response(
@@ -56,7 +57,7 @@ def chat_with_acubot(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    bot_response = ask_acubot(user_message)
+    bot_response = ask_acubot(user_message, conversation_history=conversation_history)
 
     return Response({
         "response": bot_response

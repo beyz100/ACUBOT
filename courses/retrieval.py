@@ -67,7 +67,6 @@ def retrieve_courses_hybrid(query, limit=10):
 
 
 def retrieve_university_info(query, limit=5):
-    # Try trigram similarity first since UniversityInfo fields are short
     info = UniversityInfo.objects.annotate(
         key_sim=TrigramSimilarity('key', query),
         val_sim=TrigramSimilarity('value', query),
@@ -76,7 +75,7 @@ def retrieve_university_info(query, limit=5):
         Q(key_sim__gt=0.1) | Q(val_sim__gt=0.1) | Q(cat_sim__gt=0.1)
     ).order_by('-val_sim', '-key_sim')[:limit]
     
-    # Fallback to basic contact info if nothing matches (very useful for general queries)
+    
     if not info:
         info = UniversityInfo.objects.filter(category='contact')[:limit]
         
@@ -141,6 +140,12 @@ def format_context_for_llm(context):
         formatted += "Relevant Departments:\n"
         for dept in context['departments']:
             formatted += f"- Name: {dept.name}, Faculty: {dept.faculty.name}\n"
+        formatted += "\n"
+    
+    if context.get('faculties'):
+        formatted += "Relevant Faculties:\n"
+        for faculty in context['faculties']:
+            formatted += f"- {faculty.name}\n"
         formatted += "\n"
     
     if context['university_info']:
