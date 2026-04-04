@@ -23,6 +23,7 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.5;
+      overscroll-behavior: none;
     }
     .container {
       display: flex;
@@ -30,62 +31,7 @@
       gap: 1px;
       background: var(--border);
     }
-    .sidebar {
-      width: 280px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-    }
-    .sidebar-header {
-      padding: 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .sidebar-header button {
-      width: 100%;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 0.55rem 1rem;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    .sidebar-header button:hover {
-      filter: brightness(1.08);
-    }
-    .sidebar-title {
-      padding: 1rem 1rem 0.25rem 1rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .conversations-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.5rem;
-    }
-    .conversation-item {
-      padding: 0.75rem;
-      margin-bottom: 0.25rem;
-      border-radius: 6px;
-      cursor: pointer;
-      border: 1px solid transparent;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-    }
-    .conversation-item:hover {
-      background: var(--bg);
-      border-color: var(--border);
-    }
-    .conversation-item.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      font-weight: 600;
-    }
+
     .main-content {
       flex: 1;
       display: flex;
@@ -114,6 +60,7 @@
       max-width: 800px;
       margin: 0 auto;
       width: 100%;
+      overscroll-behavior-y: contain;
     }
     .empty-state {
       color: var(--muted);
@@ -147,7 +94,7 @@
       position: fixed;
       bottom: 0;
       right: 0;
-      left: 280px;
+      left: 0;
       padding: 1rem;
       background: linear-gradient(to top, var(--bg) 70%, transparent);
       border-top: 1px solid var(--border);
@@ -225,13 +172,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <button onclick="createNewConversation()">+ Yeni Sohbet</button>
-      </div>
-      <div class="sidebar-title">Eski Sohbetler</div>
-      <div class="conversations-list" id="conversationsList"></div>
-    </div>
+
     <div class="main-content">
       <div class="header">
         <h1>ACUBOT</h1>
@@ -240,10 +181,10 @@
       <div class="messages-container" id="messagesContainer"></div>
       <div class="composer">
         <form class="compose" onsubmit="sendMessage(event)">
-          <label for="message" class="visually-hidden">Sorunuz</label>
-          <textarea id="message" placeholder="Örn. Bilgisayar Mühendisliği bölümünde hangi dersler var?" rows="3" autofocus></textarea>
+          <label for="message" class="visually-hidden">Your Question</label>
+          <textarea id="message" placeholder="e.g., What courses are there in the Computer Engineering department?" rows="3" autofocus></textarea>
           <div class="actions">
-            <button type="submit">Gönder</button>
+            <button type="submit">Send</button>
           </div>
         </form>
       </div>
@@ -255,12 +196,18 @@
     function getCookie(n){let v=null;if(document.cookie&&document.cookie!==''){document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'=')){v=decodeURIComponent(c.substring(n.length+1));}});}return v;}
     const csrfToken=document.querySelector('[name=csrfmiddlewaretoken]')?.value||getCookie('csrftoken');
     async function fetchWithAuth(u,o={}){const h={'Content-Type':'application/json',...(o.headers||{})};if(csrfToken&&o.method&&o.method!=='GET'){h['X-CSRFToken']=csrfToken;}const r=await fetch(u,{...o,headers:h});if(r.status===401||r.status===403){window.location.href='/admin/login/?next=/chat/';}return r;}
-    async function loadConversations(){const r=await fetchWithAuth(`${apiBaseUrl}/conversations/`);if(!r||!r.ok)return;const c=await r.json();const l=document.getElementById('conversationsList');l.innerHTML='';c.forEach(v=>{const i=document.createElement('div');i.className=`conversation-item ${v.id===currentConversationId?'active':''}`;i.textContent=v.title||`Sohbet ${v.id}`;i.onclick=()=>selectConversation(v.id);l.appendChild(i);});if(c.length===0&&currentConversationId===null){createNewConversation();}}
-    async function createNewConversation(){const r=await fetchWithAuth(`${apiBaseUrl}/conversations/`,{method:'POST',body:JSON.stringify({title:`Sohbet ${new Date().toLocaleDateString()}`})});if(!r||!r.ok)return;const v=await r.json();selectConversation(v.id);await loadConversations();}
-    async function selectConversation(i){currentConversationId=i;document.getElementById('message').value='';await loadMessages();await loadConversations();}
-    async function loadMessages(){if(!currentConversationId)return;const r=await fetchWithAuth(`${apiBaseUrl}/conversations/${currentConversationId}/messages/`);if(!r||!r.ok)return;const m=await r.json();const c=document.getElementById('messagesContainer');c.innerHTML='';if(m.length===0){c.innerHTML='<p class="empty-state">Henüz mesaj yok.</p>';return;}m.forEach(v=>{const d=document.createElement('div');d.className=`message ${v.role}`;const b=document.createElement('div');b.className=`bubble ${v.role}`;b.textContent=v.content;d.appendChild(b);c.appendChild(d);});c.scrollTop=c.scrollHeight;}
-    async function sendMessage(e){e.preventDefault();const c=document.getElementById('messagesContainer');const b=e.target.querySelector('button[type="submit"]');if(!currentConversationId){await createNewConversation();if(!currentConversationId){const ed=document.createElement('div');ed.className='error';ed.textContent='Sohbet başlatılamadı. Lütfen giriş yaptığınızdan emin olun.';c.appendChild(ed);b.disabled=false;return;}}const t=document.getElementById('message');const m=t.value.trim();if(!m)return;t.value='';b.disabled=true;if(c.innerHTML.includes('empty-state')){c.innerHTML='';}const u=document.createElement('div');u.className='message user';const ub=document.createElement('div');ub.className='bubble user';ub.textContent=m;u.appendChild(ub);c.appendChild(u);c.scrollTop=c.scrollHeight;const l=document.createElement('div');l.className='message';l.innerHTML='<p class="loading">ACUBOT düşünüyor...</p>';c.appendChild(l);c.scrollTop=c.scrollHeight;try{const r=await fetchWithAuth(`${apiBaseUrl}/conversations/${currentConversationId}/send/`,{method:'POST',body:JSON.stringify({message:m})});if(!r||!r.ok){l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Mesaj gönderilemedi.';c.appendChild(ed);b.disabled=false;return;}await loadMessages();}catch(er){console.error('Error:',er);l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Hata: '+er.message;c.appendChild(ed);}b.disabled=false;}
-    document.addEventListener('DOMContentLoaded',()=>{loadConversations();setInterval(loadConversations,30000);});
+    async function createNewConversation(){const r=await fetchWithAuth(`${apiBaseUrl}/conversations/`,{method:'POST',body:JSON.stringify({title:`Chat Session`})});if(!r||!r.ok)return;const v=await r.json();currentConversationId=v.id;}
+    async function sendMessage(e){e.preventDefault();const c=document.getElementById('messagesContainer');const b=e.target.querySelector('button[type="submit"]');if(!currentConversationId){await createNewConversation();if(!currentConversationId){const ed=document.createElement('div');ed.className='error';ed.textContent='Could not start chat. Please make sure you are logged in.';c.appendChild(ed);b.disabled=false;return;}}const t=document.getElementById('message');const m=t.value.trim();if(!m)return;t.value='';b.disabled=true;if(c.innerHTML.includes('empty-state')){c.innerHTML='';}const u=document.createElement('div');u.className='message user';const ub=document.createElement('div');ub.className='bubble user';ub.textContent=m;u.appendChild(ub);c.appendChild(u);c.scrollTop=c.scrollHeight;const l=document.createElement('div');l.className='message';l.innerHTML='<p class="loading">ACUBOT is thinking...</p>';c.appendChild(l);c.scrollTop=c.scrollHeight;try{const r=await fetchWithAuth(`${apiBaseUrl}/conversations/${currentConversationId}/send/`,{method:'POST',body:JSON.stringify({message:m})});if(!r||!r.ok){l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Message could not be sent.';c.appendChild(ed);b.disabled=false;return;}const mList=await r.json();const lastMsg=mList[mList.length-1];l.className='message assistant';l.innerHTML='';const lb=document.createElement('div');lb.className='bubble assistant';lb.textContent=lastMsg.content;l.appendChild(lb);c.scrollTop=c.scrollHeight;}catch(er){console.error('Error:',er);l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Error: '+er.message;c.appendChild(ed);}b.disabled=false;}
+    document.addEventListener('DOMContentLoaded',()=>{
+      createNewConversation();
+      const textarea = document.getElementById('message');
+      textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          document.querySelector('form.compose').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
+        }
+      });
+    });
   </script>
 </body>
 </html>

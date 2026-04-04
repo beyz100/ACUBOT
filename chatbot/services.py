@@ -80,16 +80,11 @@ def _expand_query_to_turkish(query: str) -> str:
     return query
 
 
-SYSTEM_PROMPT = "Answer in the student's language. Use only the provided courses list."
+SYSTEM_PROMPT = """Answer in the student's language. Use only the provided courses list.
+CRITICAL: If the user asks to list all courses or asks a broad question, you MUST list EVERY SINGLE matching course from the provided context. Do NOT abbreviate, summarize, or truncate the list. Do NOT say that you only have some of the courses."""
 
 
 def _build_context_text(user_message: str) -> str:
-    """
-    Use Mirket07's retrieval pipeline to fetch relevant data.
-    The query is first expanded with Turkish keywords so that English
-    questions can still find Turkish course names.
-    Falls back gracefully on errors.
-    """
     search_query = _expand_query_to_turkish(user_message)
     logger.debug(f"Expanded query: {search_query}")
 
