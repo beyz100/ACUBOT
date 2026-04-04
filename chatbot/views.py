@@ -145,15 +145,19 @@ def send_message(request, conversation_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    Message.objects.create(conversation=conversation, role='user', content=user_message)
-
+    # Get history BEFORE adding the new user message (so context doesn't include current message)
     history = [
         {"role": msg.role, "text": msg.content}
         for msg in conversation.messages.all()
     ]
 
+    # Create user message in DB
+    Message.objects.create(conversation=conversation, role='user', content=user_message)
+
+    # Get bot response with the history that was before the user message
     bot_response = ask_acubot(user_message, conversation_history=history)
 
+    # Create assistant message in DB
     Message.objects.create(conversation=conversation, role='assistant', content=bot_response)
 
     messages = conversation.messages.all()

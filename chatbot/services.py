@@ -54,7 +54,7 @@ EN_TR_KEYWORDS: dict[str, list[str]] = {
     "learning":     ["öğrenme"],
     "elective":     ["seçmeli"],
     "faculty":      ["fakülte"],
-    "department":   ["bölüm"],
+    "department":   ["bölüm", "bölümü", "bölümünde"],
     "contact":      ["iletişim"],
     "address":      ["adres"],
     "phone":        ["telefon"],
@@ -97,17 +97,19 @@ listing multiple items.
 and other details to the student's language when needed.
 
 ### Rules
-1. Answer **only** from the CONTEXT block provided below. Never invent \
-courses, phone numbers, names, or any other facts.
-2. If the context does not contain enough information, say \
-"Sorry, I couldn't find this information in my database right now." \
-(in the student's language).
+1. Answer **ONLY** from the CONTEXT block provided below. NEVER invent \
+courses, phone numbers, names, addresses, emails, or any other facts.
+2. If the context does not contain the exact information requested, \
+respond with "Sorry, I couldn't find this information in my database right now." \
+(in the student's language). Do NOT guess or approximate.
 3. When citing a course, always include its **code**, **name**, and \
 **ECTS** credit.
 4. When citing contact info, include all available fields (phone, e-mail, \
 address, campus).
 5. Do **not** repeat the raw context back to the student. Synthesise it \
 into a natural answer.
+6. If you are unsure about any information, say so clearly rather than \
+providing potentially incorrect details.
 """
 
 
@@ -119,20 +121,25 @@ def _build_context_text(user_message: str) -> str:
     Falls back gracefully on errors.
     """
     search_query = _expand_query_to_turkish(user_message)
+    logger.debug(f"Expanded query: {search_query}")
 
     try:
         context = get_retrieval_context(search_query, search_method='hybrid')
+        logger.debug(f"Retrieved context: {len(context.get('courses', []))} courses, "
+                    f"{len(context.get('departments', []))} departments, "
+                    f"{len(context.get('university_info', []))} info items")
     except Exception as exc:
         logger.warning("Primary retrieval failed (%s). Trying fallback.", exc)
         try:
-            courses = retrieve_courses_hybrid(search_query, limit=5)
-            uni_info = retrieve_university_info(search_query, limit=3)
+            courses = retrieve_courses_hybrid(search_query, limit=20)
+            uni_info = retrieve_university_info(search_query, limit=5)
             context = {
                 'courses': courses,
                 'departments': [],
                 'university_info': uni_info,
                 'faculties': [],
             }
+            logger.debug(f"Fallback retrieval succeeded: {len(courses)} courses, {len(uni_info)} info items")
         except Exception as inner_exc:
             logger.error("Fallback retrieval also failed (%s).", inner_exc)
             context = {
@@ -148,6 +155,7 @@ def _build_context_text(user_message: str) -> str:
              + len(context.get('university_info', []))
              + len(context.get('faculties', [])))
     if total == 0:
+        logger.warning("No context found for query, attempting fallback to contact info")
         try:
             context['university_info'] = list(
                 __import__('courses.models', fromlist=['UniversityInfo'])
@@ -199,14 +207,14 @@ def ask_acubot(user_message: str,
         "prompt": prompt,
         "stream": False,
         "options": {
-            "temperature": 0.4,       
+            "temperature": 0.5,
             "top_p": 0.9,
             "num_predict": 512,        
         },
     }
 
     try:
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=90)
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
 
         if response.status_code == 200:
             data = response.json()
