@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ACUBOT — Chat</title>
+  <title>ACUBOT</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -16,17 +16,6 @@
       --bot-bg: #1e2d22;
     }
     * { box-sizing: border-box; }
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
     body {
       margin: 0;
       min-height: 100vh;
@@ -34,46 +23,60 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.5;
+      overscroll-behavior: none;
     }
-    .wrap {
-      max-width: 42rem;
-      margin: 0 auto;
-      padding: 1.5rem 1rem 4rem;
+    .container {
+      display: flex;
+      height: 100vh;
+      gap: 1px;
+      background: var(--border);
     }
-    header {
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+    }
+    .header {
+      padding: 1.5rem;
       border-bottom: 1px solid var(--border);
     }
-    header h1 {
+    .header h1 {
       margin: 0 0 0.25rem;
       font-size: 1.35rem;
       font-weight: 600;
       letter-spacing: -0.02em;
     }
-    header p {
+    .header p {
       margin: 0;
       font-size: 0.9rem;
       color: var(--muted);
     }
-    .error {
-      background: #3d1f24;
-      border: 1px solid #6b2d36;
-      color: #f5c6cb;
-      padding: 0.65rem 0.85rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1rem 4rem;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      overscroll-behavior-y: contain;
     }
-    .thread {
+    .empty-state {
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+    .message {
       display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
-      min-height: 120px;
+      margin-bottom: 1rem;
+    }
+    .message.user {
+      justify-content: flex-end;
     }
     .bubble {
-      max-width: 90%;
+      max-width: 70%;
       padding: 0.75rem 1rem;
       border-radius: 12px;
       border: 1px solid var(--border);
@@ -82,37 +85,27 @@
       word-break: break-word;
     }
     .bubble.user {
-      align-self: flex-end;
       background: var(--user-bg);
     }
     .bubble.assistant {
-      align-self: flex-start;
       background: var(--bot-bg);
     }
-    .bubble .label {
-      display: block;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 0.35rem;
-    }
-    .empty {
-      color: var(--muted);
-      font-size: 0.9rem;
-      text-align: center;
-      padding: 2rem 1rem;
-    }
     .composer {
-      position: sticky;
+      position: fixed;
       bottom: 0;
-      padding-top: 1rem;
+      right: 0;
+      left: 0;
+      padding: 1rem;
       background: linear-gradient(to top, var(--bg) 70%, transparent);
+      border-top: 1px solid var(--border);
     }
     form.compose {
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
     }
     textarea {
       width: 100%;
@@ -133,9 +126,7 @@
     }
     .actions {
       display: flex;
-      flex-wrap: wrap;
       gap: 0.5rem;
-      align-items: center;
     }
     button[type="submit"] {
       background: var(--accent);
@@ -147,61 +138,76 @@
       font-size: 0.9rem;
       cursor: pointer;
     }
-    button[type="submit"]:hover {
+    button[type="submit"]:hover:not(:disabled) {
       filter: brightness(1.08);
     }
-    button.secondary {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 0.5rem 0.9rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      cursor: pointer;
+    button[type="submit"]:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
-    button.secondary:hover {
-      color: var(--text);
-      border-color: var(--muted);
+    .error {
+      background: #3d1f24;
+      border: 1px solid #6b2d36;
+      color: #f5c6cb;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    .loading {
+      color: var(--muted);
+      font-style: italic;
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>ACUBOT</h1>
-      <p>Ask about Acibadem University. Answers use the assistant pipeline (same as the API).</p>
-    </header>
+  <div class="container">
 
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
-
-    <div class="thread" id="thread" aria-live="polite">
-      {% if history %}
-        {% for row in history %}
-          <div class="bubble {{ row.role }}">
-            <span class="label">{% if row.role == "user" %}You{% else %}ACUBOT{% endif %}</span>
-            {{ row.text }}
+    <div class="main-content">
+      <div class="header">
+        <h1>ACUBOT</h1>
+        <p>Ask about Acibadem University. Answers use the assistant pipeline.</p>
+      </div>
+      <div class="messages-container" id="messagesContainer"></div>
+      <div class="composer">
+        <form class="compose" onsubmit="sendMessage(event)">
+          <label for="message" class="visually-hidden">Your Question</label>
+          <textarea id="message" placeholder="e.g., What courses are there in the Computer Engineering department?" rows="3" autofocus></textarea>
+          <div class="actions">
+            <button type="submit">Send</button>
           </div>
-        {% endfor %}
-      {% else %}
-        <p class="empty">No messages yet. Type a question below.</p>
-      {% endif %}
-    </div>
-
-    <div class="composer">
-      <form class="compose" method="post" action="">
-        {% csrf_token %}
-        <label for="message" class="visually-hidden">Your question</label>
-        <textarea id="message" name="message" placeholder="e.g. Which courses are in the Computer Engineering department?" rows="3" autofocus></textarea>
-        <div class="actions">
-          <button type="submit">Send</button>
-          {% if history %}
-            <button type="submit" class="secondary" name="clear_history" value="1" formnovalidate>Clear history</button>
-          {% endif %}
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   </div>
+  <script>
+    let currentConversationId=null;
+    const apiBaseUrl='/api/chat';
+    function getCookie(n){let v=null;if(document.cookie&&document.cookie!==''){document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'=')){v=decodeURIComponent(c.substring(n.length+1));}});}return v;}
+    const csrfToken=document.querySelector('[name=csrfmiddlewaretoken]')?.value||getCookie('csrftoken');
+    async function fetchWithAuth(u,o={}){const h={'Content-Type':'application/json',...(o.headers||{})};if(csrfToken&&o.method&&o.method!=='GET'){h['X-CSRFToken']=csrfToken;}const r=await fetch(u,{...o,headers:h});if(r.status===401||r.status===403){window.location.href='/admin/login/?next=/chat/';}return r;}
+    async function createNewConversation(){const r=await fetchWithAuth(`${apiBaseUrl}/conversations/`,{method:'POST',body:JSON.stringify({title:`Chat Session`})});if(!r||!r.ok)return;const v=await r.json();currentConversationId=v.id;}
+    async function sendMessage(e){e.preventDefault();const c=document.getElementById('messagesContainer');const b=e.target.querySelector('button[type="submit"]');if(!currentConversationId){await createNewConversation();if(!currentConversationId){const ed=document.createElement('div');ed.className='error';ed.textContent='Could not start chat. Please make sure you are logged in.';c.appendChild(ed);b.disabled=false;return;}}const t=document.getElementById('message');const m=t.value.trim();if(!m)return;t.value='';b.disabled=true;if(c.innerHTML.includes('empty-state')){c.innerHTML='';}const u=document.createElement('div');u.className='message user';const ub=document.createElement('div');ub.className='bubble user';ub.textContent=m;u.appendChild(ub);c.appendChild(u);c.scrollTop=c.scrollHeight;const l=document.createElement('div');l.className='message';l.innerHTML='<p class="loading">ACUBOT is thinking...</p>';c.appendChild(l);c.scrollTop=c.scrollHeight;try{const r=await fetchWithAuth(`${apiBaseUrl}/conversations/${currentConversationId}/send/`,{method:'POST',body:JSON.stringify({message:m})});if(!r||!r.ok){l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Message could not be sent.';c.appendChild(ed);b.disabled=false;return;}const mList=await r.json();const lastMsg=mList[mList.length-1];l.className='message assistant';l.innerHTML='';const lb=document.createElement('div');lb.className='bubble assistant';lb.textContent=lastMsg.content;l.appendChild(lb);c.scrollTop=c.scrollHeight;}catch(er){console.error('Error:',er);l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Error: '+er.message;c.appendChild(ed);}b.disabled=false;}
+    document.addEventListener('DOMContentLoaded',()=>{
+      createNewConversation();
+      const textarea = document.getElementById('message');
+      textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          document.querySelector('form.compose').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
+        }
+      });
+    });
+  </script>
 </body>
 </html>

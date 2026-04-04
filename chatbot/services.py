@@ -1,49 +1,189 @@
+from __future__ import annotations
+
+import re
 import requests
+import logging
 from courses.models import Course
-from courses.retrieval import get_retrieval_context, format_context_for_llm
+from courses.retrieval import (
+    get_retrieval_context,
+    format_context_for_llm,
+    retrieve_courses_hybrid,
+    retrieve_university_info,
+)
+
+logger = logging.getLogger(__name__)
 
 OLLAMA_API_URL = "http://llm:11434/api/generate"
 MODEL_NAME = "qwen2.5:3b"
 
-def ask_acubot(user_message):
+
+EN_TR_KEYWORDS: dict[str, list[str]] = {
+    "programming":  ["programlama", "programlamaya"],
+    "program":      ["programlama"],
+    "course":       ["ders"],
+    "courses":      ["ders", "dersleri"],
+    "math":         ["matematik", "kalkülüs"],
+    "mathematics":  ["matematik", "kalkülüs"],
+    "calculus":     ["kalkülüs"],
+    "physics":      ["fizik"],
+    "chemistry":    ["kimya"],
+    "english":      ["ingilizce"],
+    "turkish":      ["türk dili"],
+    "history":      ["tarih", "inkılap"],
+    "data":         ["veri"],
+    "database":     ["veritabanı"],
+    "algorithm":    ["algoritma"],
+    "web":          ["web"],
+    "network":      ["ağ", "bilgisayar ağları"],
+    "operating":    ["işletim"],
+    "system":       ["sistem"],
+    "software":     ["yazılım"],
+    "engineering":  ["mühendisliği", "mühendislik"],
+    "computer":     ["bilgisayar"],
+    "science":      ["bilim"],
+    "introduction": ["giriş"],
+    "electronics":  ["elektronik"],
+    "statistics":   ["istatistik", "olasılık"],
+    "probability":  ["olasılık"],
+    "linear":       ["lineer", "doğrusal"],
+    "algebra":      ["cebir"],
+    "discrete":     ["ayrık"],
+    "artificial":   ["yapay"],
+    "intelligence": ["zeka"],
+    "machine":      ["makine"],
+    "learning":     ["öğrenme"],
+    "elective":     ["seçmeli"],
+    "faculty":      ["fakülte"],
+    "department":   ["bölüm", "bölümü", "bölümünde"],
+    "contact":      ["iletişim"],
+    "address":      ["adres"],
+    "phone":        ["telefon"],
+    "campus":       ["kampüs"],
+    "semester":     ["dönem", "yarıyıl"],
+    "credit":       ["kredi", "ects"],
+    "internship":   ["staj"],
+    "thesis":       ["tez", "bitirme"],
+    "graduation":   ["mezuniyet"],
+    "project":      ["proje"],
+}
+
+
+def _expand_query_to_turkish(query: str) -> str:
+    added: list[str] = []
+    lower = query.lower()
+    for en_word, tr_words in EN_TR_KEYWORDS.items():
+        if re.search(rf'\b{re.escape(en_word)}\b', lower):
+            added.extend(tr_words)
+
+    if added:
+        return f"{query} {' '.join(dict.fromkeys(added))}"
+    return query
+
+
+SYSTEM_PROMPT = """Answer in the student's language. Use only the provided courses list.
+CRITICAL: If the user asks to list all courses or asks a broad question, you MUST list EVERY SINGLE matching course from the provided context. Do NOT abbreviate, summarize, or truncate the list. Do NOT say that you only have some of the courses."""
+
+
+def _build_context_text(user_message: str) -> str:
+    search_query = _expand_query_to_turkish(user_message)
+    logger.debug(f"Expanded query: {search_query}")
+
     try:
-        context = get_retrieval_context(user_message, search_method='hybrid')
-    except Exception:
-        courses = Course.objects.select_related('department').all()[:15]
-        context = {
-            'courses': courses,
-            'departments': [],
-            'university_info': [],
-            'faculties': []
-        }
-    
-    context_text = format_context_for_llm(context)
+        context = get_retrieval_context(search_query, search_method='hybrid')
+        logger.debug(f"Retrieved context: {len(context.get('courses', []))} courses, "
+                    f"{len(context.get('departments', []))} departments, "
+                    f"{len(context.get('university_info', []))} info items")
+    except Exception as exc:
+        logger.warning("Primary retrieval failed (%s). Trying fallback.", exc)
+        try:
+            courses = retrieve_courses_hybrid(search_query, limit=50)
+            uni_info = retrieve_university_info(search_query, limit=5)
+            context = {
+                'courses': courses,
+                'departments': [],
+                'university_info': uni_info,
+                'faculties': [],
+            }
+            logger.debug(f"Fallback retrieval succeeded: {len(courses)} courses, {len(uni_info)} info items")
+        except Exception as inner_exc:
+            logger.error("Fallback retrieval also failed (%s).", inner_exc)
+            context = {
+                'courses': [],
+                'departments': [],
+                'university_info': [],
+                'faculties': [],
+            }
 
-    prompt = f"""You are ACUBOT, a polite, energetic, and informal assistant bot helping Acibadem University students.
-Below is the information retrieved from our database, which may include Course details, Faculties, Departments, or General University Information.
-Answer the student's question using ONLY this provided information.
-If the answer is not available in this information, honestly say 'Sorry, I cannot find this information in my database right now.' Do not make up answers.
 
-{context_text}
+    total = (len(context.get('courses', []))
+             + len(context.get('departments', []))
+             + len(context.get('university_info', []))
+             + len(context.get('faculties', [])))
+    if total == 0:
+        logger.warning("No context found for query, attempting fallback to contact info")
+        try:
+            context['university_info'] = list(
+                __import__('courses.models', fromlist=['UniversityInfo'])
+                .UniversityInfo.objects.filter(category='contact')[:3]
+            )
+        except Exception:
+            pass
 
-Student's Question: {user_message}
+    return format_context_for_llm(context)
 
-Your response as ACUBOT:"""
+
+def _build_prompt(user_message: str, context_text: str,
+                  conversation_history: list | None = None) -> str:
+    """Build minimal prompt to maximize space for courses."""
+    return f"{SYSTEM_PROMPT}\n\nCourses:\n{context_text}\n\nQuestion: {user_message}\n\nAnswer:"
+
+
+
+def ask_acubot(user_message: str,
+               conversation_history: list | None = None) -> str:
+
+    context_text = _build_context_text(user_message)
+    prompt = _build_prompt(user_message, context_text, conversation_history)
 
     payload = {
         "model": MODEL_NAME,
         "prompt": prompt,
-        "stream": False
+        "stream": False,
+        "options": {
+            "temperature": 0.5,
+            "top_p": 0.9,
+            "num_predict": 8192,
+        },
     }
 
     try:
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=60)
-        
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
+
         if response.status_code == 200:
             data = response.json()
             return data.get("response", "").strip()
         else:
-            return f"The AI server returned an error. Status Code: {response.status_code}"
-            
-    except requests.exceptions.RequestException:
-        return "I cannot connect to my brain (the Qwen model) right now. The download might not be finished, or there is a Docker network issue."
+            logger.error("Ollama returned status %s: %s",
+                         response.status_code, response.text[:300])
+            return (
+                "The AI server returned an error. "
+                f"Status Code: {response.status_code}"
+            )
+
+    except requests.exceptions.ConnectionError:
+        return (
+            "I can't connect to my brain (Qwen model) right now. "
+            "The model might still be downloading, or there's a Docker "
+            "network issue."
+        )
+    except requests.exceptions.Timeout:
+        return (
+            "The AI model took too long to respond. "
+            "Please try again in a moment."
+        )
+    except requests.exceptions.RequestException as exc:
+        logger.error("Ollama request failed: %s", exc)
+        return (
+            "An unexpected error occurred while communicating with the "
+            "AI server. Please try again later."
+        )
