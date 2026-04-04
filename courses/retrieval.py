@@ -42,7 +42,7 @@ def retrieve_courses_by_department(department_query, limit=20):
     departments = Department.objects.annotate(
         dept_sim=TrigramSimilarity('name', department_query)
     ).filter(
-        dept_sim__gt=0.3
+        dept_sim__gt=0.2  # Lowered from 0.3 to catch partial matches like "bilgisayar"
     ).order_by('-dept_sim')
     
     if not departments:
@@ -57,7 +57,7 @@ def retrieve_courses_by_department(department_query, limit=20):
     return list(courses)
 
 
-def retrieve_courses_hybrid(query, limit=20):
+def retrieve_courses_hybrid(query, limit=50):
     """
     Improved hybrid retrieval that:
     1. First tries department-specific retrieval if department name is detected
@@ -167,44 +167,26 @@ def retrieve_combined_context(query, limit=15):
 
 
 def format_context_for_llm(context):
-    formatted = "Retrieved Context Information:\n\n"
+    """Format context for LLM - ultra minimal to maximize space for courses."""
+    formatted = ""
     
     if context['courses']:
-        formatted += "Relevant Courses:\n"
+        # List all courses directly, minimal formatting
         for course in context['courses']:
-            formatted += f"- Code: {course.code}, Name: {course.name}, ECTS: {course.ects}, Department: {course.department.name}, Faculty: {course.department.faculty.name}\n"
-        formatted += "\n"
-    
-    if context['departments']:
-        formatted += "Relevant Departments:\n"
-        for dept in context['departments']:
-            formatted += f"- Name: {dept.name}, Faculty: {dept.faculty.name}\n"
-        formatted += "\n"
-    
-    if context.get('faculties'):
-        formatted += "Relevant Faculties:\n"
-        for faculty in context['faculties']:
-            formatted += f"- {faculty.name}\n"
-        formatted += "\n"
-    
-    if context['university_info']:
-        formatted += "University Information:\n"
-        for info in context['university_info']:
-            formatted += f"- [{info.category}] {info.key}: {info.value}\n"
-        formatted += "\n"
+            formatted += f"{course.code} {course.name}\n"
     
     return formatted
 
 
 def get_retrieval_context(user_query, search_method='hybrid'):
     if search_method == 'hybrid':
-        courses = retrieve_courses_hybrid(user_query)
+        courses = retrieve_courses_hybrid(user_query, limit=50)  # Increased from 20 to 50
     elif search_method == 'full_text':
-        courses = retrieve_courses_full_text(user_query)
+        courses = retrieve_courses_full_text(user_query, limit=50)
     elif search_method == 'trigram':
-        courses = retrieve_courses_trigram(user_query)
+        courses = retrieve_courses_trigram(user_query, limit=50)
     else:
-        courses = retrieve_courses_hybrid(user_query)
+        courses = retrieve_courses_hybrid(user_query, limit=50)
     
     departments = retrieve_departments_full_text(user_query, limit=3)
     university_info = retrieve_university_info(user_query, limit=2)

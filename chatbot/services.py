@@ -80,37 +80,7 @@ def _expand_query_to_turkish(query: str) -> str:
     return query
 
 
-SYSTEM_PROMPT = """\
-You are **ACUBOT**, the friendly and knowledgeable virtual assistant of \
-Acıbadem University (Acıbadem Üniversitesi).
-
-### Personality
-- Warm, polite, and slightly informal – like a helpful senior student.
-- Prefer short, direct answers. Use bullet points or numbered lists when \
-listing multiple items.
-
-### CRITICAL Language Rule
-- You MUST reply in the **same language the student used in their question**.
-- If the student writes in English, you MUST reply entirely in English.
-- If the student writes in Turkish, you MUST reply entirely in Turkish.
-- The CONTEXT data may be in Turkish regardless – translate course names \
-and other details to the student's language when needed.
-
-### Rules
-1. Answer **ONLY** from the CONTEXT block provided below. NEVER invent \
-courses, phone numbers, names, addresses, emails, or any other facts.
-2. If the context does not contain the exact information requested, \
-respond with "Sorry, I couldn't find this information in my database right now." \
-(in the student's language). Do NOT guess or approximate.
-3. When citing a course, always include its **code**, **name**, and \
-**ECTS** credit.
-4. When citing contact info, include all available fields (phone, e-mail, \
-address, campus).
-5. Do **not** repeat the raw context back to the student. Synthesise it \
-into a natural answer.
-6. If you are unsure about any information, say so clearly rather than \
-providing potentially incorrect details.
-"""
+SYSTEM_PROMPT = "Answer in the student's language. Use only the provided courses list."
 
 
 def _build_context_text(user_message: str) -> str:
@@ -131,7 +101,7 @@ def _build_context_text(user_message: str) -> str:
     except Exception as exc:
         logger.warning("Primary retrieval failed (%s). Trying fallback.", exc)
         try:
-            courses = retrieve_courses_hybrid(search_query, limit=20)
+            courses = retrieve_courses_hybrid(search_query, limit=50)
             uni_info = retrieve_university_info(search_query, limit=5)
             context = {
                 'courses': courses,
@@ -169,30 +139,8 @@ def _build_context_text(user_message: str) -> str:
 
 def _build_prompt(user_message: str, context_text: str,
                   conversation_history: list | None = None) -> str:
-    """
-    Assemble the full prompt sent to Ollama.
-    Optionally includes recent conversation turns for multi-turn context.
-    """
-    parts = [SYSTEM_PROMPT]
-
-
-    if conversation_history:
-        recent = conversation_history[-6:]  
-        history_block = "### Recent Conversation\n"
-        for turn in recent:
-            role_label = "Student" if turn.get("role") == "user" else "ACUBOT"
-            history_block += f"**{role_label}:** {turn.get('text', turn.get('content', ''))}\n"
-        parts.append(history_block)
-
-
-    parts.append(f"### CONTEXT\n{context_text}")
-
-
-    parts.append(f"### Student's Question\n{user_message}")
-
-    parts.append("### Your Response as ACUBOT (reply in the same language as the question)")
-
-    return "\n\n".join(parts)
+    """Build minimal prompt to maximize space for courses."""
+    return f"{SYSTEM_PROMPT}\n\nCourses:\n{context_text}\n\nQuestion: {user_message}\n\nAnswer:"
 
 
 
@@ -209,7 +157,7 @@ def ask_acubot(user_message: str,
         "options": {
             "temperature": 0.5,
             "top_p": 0.9,
-            "num_predict": 512,        
+            "num_predict": 8192,
         },
     }
 
