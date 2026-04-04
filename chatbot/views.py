@@ -1,6 +1,7 @@
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -15,6 +16,7 @@ CHAT_HISTORY_SESSION_KEY = "acubot_chat_history"
 MAX_CHAT_TURNS = 25
 
 
+@ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
 def chat_ui(request):
     if request.method == "POST" and request.POST.get("clear_history"):
