@@ -9,8 +9,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 
 from .services import ask_acubot
-from .models import Conversation, Message
-from .serializers import ConversationSerializer, ConversationListSerializer, MessageSerializer
 
 CHAT_HISTORY_SESSION_KEY = "acubot_chat_history"
 MAX_CHAT_TURNS = 25
@@ -68,102 +66,5 @@ def chat_with_acubot(request):
     return Response({
         "response": bot_response
     }, status=status.HTTP_200_OK)
-
-
-@api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated])
-def conversations_list(request):
-    if request.method == 'GET':
-        conversations = Conversation.objects.filter(user=request.user)
-        serializer = ConversationListSerializer(conversations, many=True)
-        return Response(serializer.data)
-
-    if request.method == 'POST':
-        title = request.data.get('title', 'New Conversation')
-        conversation = Conversation.objects.create(user=request.user, title=title)
-        serializer = ConversationSerializer(conversation)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-@api_view(['GET', 'DELETE', 'PATCH'])
-@permission_classes([IsAuthenticated])
-def conversation_detail(request, conversation_id):
-    try:
-        conversation = Conversation.objects.get(id=conversation_id, user=request.user)
-    except Conversation.DoesNotExist:
-        return Response(
-            {"error": "Conversation not found."},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    if request.method == 'GET':
-        serializer = ConversationSerializer(conversation)
-        return Response(serializer.data)
-
-    if request.method == 'DELETE':
-        conversation.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    if request.method == 'PATCH':
-        title = request.data.get('title')
-        if title:
-            conversation.title = title
-            conversation.save()
-        serializer = ConversationSerializer(conversation)
-        return Response(serializer.data)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def conversation_messages(request, conversation_id):
-    try:
-        conversation = Conversation.objects.get(id=conversation_id, user=request.user)
-    except Conversation.DoesNotExist:
-        return Response(
-            {"error": "Conversation not found."},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    messages = conversation.messages.all()
-    serializer = MessageSerializer(messages, many=True)
-    return Response(serializer.data)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def send_message(request, conversation_id):
-    try:
-        conversation = Conversation.objects.get(id=conversation_id, user=request.user)
-    except Conversation.DoesNotExist:
-        return Response(
-            {"error": "Conversation not found."},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    user_message = request.data.get('message', '').strip()
-    if not user_message:
-        return Response(
-            {"error": "Message cannot be empty."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # Get history BEFORE adding the new user message (so context doesn't include current message)
-    history = [
-        {"role": msg.role, "text": msg.content}
-        for msg in conversation.messages.all()
-    ]
-
-    # Create user message in DB
-    Message.objects.create(conversation=conversation, role='user', content=user_message)
-
-    # Get bot response with the history that was before the user message
-    bot_response = ask_acubot(user_message, conversation_history=history)
-
-    # Create assistant message in DB
-    Message.objects.create(conversation=conversation, role='assistant', content=bot_response)
-
-    messages = conversation.messages.all()
-    serializer = MessageSerializer(messages, many=True)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
