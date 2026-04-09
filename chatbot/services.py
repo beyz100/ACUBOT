@@ -10,6 +10,8 @@ from courses.retrieval import (
     retrieve_courses_hybrid,
     retrieve_university_info,
 )
+from requests.exceptions import ConnectionError, Timeout, RequestException
+
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +136,6 @@ def _build_context_text(user_message: str) -> str:
 
 def _build_prompt(user_message: str, context_text: str,
                   conversation_history: list | None = None) -> str:
-    """Build minimal prompt to maximize space for courses."""
     return f"{SYSTEM_PROMPT}\n\nCourses:\n{context_text}\n\nQuestion: {user_message}\n\nAnswer:"
 
 
@@ -152,38 +153,28 @@ def ask_acubot(user_message: str,
         "options": {
             "temperature": 0.5,
             "top_p": 0.9,
-            "num_predict": 8192,
+            "num_predict": 2048,
         },
     }
 
     try:
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=45)
 
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("response", "").strip()
-        else:
-            logger.error("Ollama returned status %s: %s",
-                         response.status_code, response.text[:300])
-            return (
-                "The AI server returned an error. "
-                f"Status Code: {response.status_code}"
-            )
+        if response.status_code != 200:
+            logger.error(f"Ollama API hata kodu: {response.status_code}")
+            return "Şu an sunucu kaynaklı bir gecikme yaşıyoruz. Lütfen kısa süre sonra tekrar deneyin."
 
-    except requests.exceptions.ConnectionError:
-        return (
-            "I can't connect to my brain (Qwen model) right now. "
-            "The model might still be downloading, or there's a Docker "
-            "network issue."
-        )
-    except requests.exceptions.Timeout:
-        return (
-            "The AI model took too long to respond. "
-            "Please try again in a moment."
-        )
-    except requests.exceptions.RequestException as exc:
-        logger.error("Ollama request failed: %s", exc)
-        return (
-            "An unexpected error occurred while communicating with the "
-            "AI server. Please try again later."
-        )
+        data = response.json()
+        return data.get("response", "").strip()
+
+    except Timeout:
+        logger.warning("Ollama API yanıt vermedi (Timeout).")
+        return "Yanıt çok uzun sürdü. Sunucumuz şu an meşgul, lütfen tekrar deneyin."
+
+    except ConnectionError:
+        logger.error("Ollama API bağlantı hatası.")
+        return "Sistem bağlantısı şu an kurulamadı. Sunucu servisi durmuş olabilir."
+
+    except RequestException as e:
+        logger.critical(f"Beklenmedik bir Request hatası: {str(e)}")
+        return "İşlem sırasında beklenmedik bir hata oluştu."

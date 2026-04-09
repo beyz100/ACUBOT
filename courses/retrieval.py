@@ -179,7 +179,7 @@ def format_context_for_llm(context):
 
 def get_retrieval_context(user_query, search_method='hybrid'):
     if search_method == 'hybrid':
-        courses = retrieve_courses_hybrid(user_query, limit=50)  # Increased from 20 to 50
+        courses = retrieve_courses_hybrid(user_query, limit=50)
     elif search_method == 'full_text':
         courses = retrieve_courses_full_text(user_query, limit=50)
     elif search_method == 'trigram':

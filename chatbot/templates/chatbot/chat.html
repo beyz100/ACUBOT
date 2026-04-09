@@ -146,12 +146,19 @@
       cursor: not-allowed;
     }
     .error {
-      background: #3d1f24;
-      border: 1px solid #6b2d36;
-      color: #f5c6cb;
-      padding: 0.65rem 0.85rem;
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 15px;
       border-radius: 8px;
       font-size: 0.9rem;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+    }
+    .error::before {
+        content: "⚠️ ";
+        margin-right: 5px;
     }
     .loading {
       color: var(--muted);
