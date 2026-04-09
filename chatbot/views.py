@@ -61,7 +61,7 @@ def chat_with_acubot(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    bot_response = ask_acubot(user_message, conversation_history=conversation_history)
+    bot_response = ask_acubot(user_message, _conversation_history=conversation_history)
 
     return Response({
         "response": bot_response

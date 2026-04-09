@@ -3,14 +3,12 @@ from __future__ import annotations
 import re
 import requests
 import logging
-from courses.models import Course
+from collections import Counter
 from courses.retrieval import (
     get_retrieval_context,
-    format_context_for_llm,
-    retrieve_courses_hybrid,
-    retrieve_university_info,
-)
+    format_context_for_llm)
 from requests.exceptions import ConnectionError, Timeout, RequestException
+
 
 
 logger = logging.getLogger(__name__)
@@ -82,99 +80,67 @@ def _expand_query_to_turkish(query: str) -> str:
     return query
 
 
-SYSTEM_PROMPT = """Answer in the student's language. Use only the provided courses list.
-CRITICAL: If the user asks to list all courses or asks a broad question, you MUST list EVERY SINGLE matching course from the provided context. Do NOT abbreviate, summarize, or truncate the list. Do NOT say that you only have some of the courses."""
+SYSTEM_PROMPT = """You are an ACUBOT assistant for Acıbadem University. 
+- ALWAYS answer in the student's language.
+- When asked for department courses: 
+    - Identify the technical course codes in the context (e.g., CSE for Computer Eng, BME for Biomedical).
+    - Prioritize those technical codes. Exclude internships, projects, theses, and electives.
+    - Keep answers brief. 
+- IMPORTANT: Provide the official course list link ONLY ONCE at the end of your response: https://obs.acibadem.edu.tr/oibs/bologna/"""
 
 
-def _build_context_text(user_message: str) -> str:
+def ask_acubot(user_message: str, _conversation_history: list | None = None) -> str:
+
     search_query = _expand_query_to_turkish(user_message)
-    logger.debug(f"Expanded query: {search_query}")
+    context = get_retrieval_context(search_query, search_method='hybrid')
+    query_lower = user_message.lower()
+    if any(k in query_lower for k in ["ders", "course", "bölüm", "department"]):
+        context['university_info'] = []
 
-    try:
-        context = get_retrieval_context(search_query, search_method='hybrid')
-        logger.debug(f"Retrieved context: {len(context.get('courses', []))} courses, "
-                    f"{len(context.get('departments', []))} departments, "
-                    f"{len(context.get('university_info', []))} info items")
-    except Exception as exc:
-        logger.warning("Primary retrieval failed (%s). Trying fallback.", exc)
-        try:
-            courses = retrieve_courses_hybrid(search_query, limit=50)
-            uni_info = retrieve_university_info(search_query, limit=5)
-            context = {
-                'courses': courses,
-                'departments': [],
-                'university_info': uni_info,
-                'faculties': [],
-            }
-            logger.debug(f"Fallback retrieval succeeded: {len(courses)} courses, {len(uni_info)} info items")
-        except Exception as inner_exc:
-            logger.error("Fallback retrieval also failed (%s).", inner_exc)
-            context = {
-                'courses': [],
-                'departments': [],
-                'university_info': [],
-                'faculties': [],
-            }
+    if context.get('courses'):
+        unwanted = ['staj', 'tez', 'bitirme', 'proje', 'genel', 'seçmeli', 'etiği', 'yaz']
+        filtered = [
+            c for c in context['courses']
+            if not any(k in c.name.lower() for k in unwanted)
+        ]
+        prefixes = [c.code.split(' ')[0] for c in filtered if ' ' in c.code]
+        most_common = Counter(prefixes).most_common(1)
+        priority_code = most_common[0][0] if most_common else 'XXX'
 
+        def course_priority(c):
+            if c.code.upper().startswith(priority_code): return 0
+            if any(c.code.upper().startswith(p) for p in ['MAT', 'PHY', 'BME']): return 1
+            return 2
+        context['courses'] = sorted(filtered, key=course_priority)[:10]
 
-    total = (len(context.get('courses', []))
-             + len(context.get('departments', []))
-             + len(context.get('university_info', []))
-             + len(context.get('faculties', [])))
-    if total == 0:
-        logger.warning("No context found for query, attempting fallback to contact info")
-        try:
-            context['university_info'] = list(
-                __import__('courses.models', fromlist=['UniversityInfo'])
-                .UniversityInfo.objects.filter(category='contact')[:3]
-            )
-        except Exception:
-            pass
-
-    return format_context_for_llm(context)
-
-
-def _build_prompt(user_message: str, context_text: str,
-                  conversation_history: list | None = None) -> str:
-    return f"{SYSTEM_PROMPT}\n\nCourses:\n{context_text}\n\nQuestion: {user_message}\n\nAnswer:"
-
-
-
-def ask_acubot(user_message: str,
-               conversation_history: list | None = None) -> str:
-
-    context_text = _build_context_text(user_message)
-    prompt = _build_prompt(user_message, context_text, conversation_history)
+    context_text = format_context_for_llm(context)
+    prompt = f"{SYSTEM_PROMPT}\n\nCourses/Context:\n{context_text}\n\nQuestion: {user_message}\n\nAnswer:"
 
     payload = {
         "model": MODEL_NAME,
         "prompt": prompt,
         "stream": False,
         "options": {
-            "temperature": 0.5,
+            "temperature": 0.4,
             "top_p": 0.9,
-            "num_predict": 2048,
+            "num_predict": 1024,
         },
     }
 
     try:
-        response = requests.post(OLLAMA_API_URL, json=payload, timeout=45)
+        response = requests.post(OLLAMA_API_URL, json=payload, timeout=30)
+        if response.status_code == 200:
+            return response.json().get("response", "").strip()
+        else:
+            logger.error(f"Ollama returned {response.status_code}")
+            return "Şu an sunucu kaynaklı bir gecikme yaşıyoruz."
 
-        if response.status_code != 200:
-            logger.error(f"Ollama API hata kodu: {response.status_code}")
-            return "Şu an sunucu kaynaklı bir gecikme yaşıyoruz. Lütfen kısa süre sonra tekrar deneyin."
 
-        data = response.json()
-        return data.get("response", "").strip()
 
     except Timeout:
-        logger.warning("Ollama API yanıt vermedi (Timeout).")
-        return "Yanıt çok uzun sürdü. Sunucumuz şu an meşgul, lütfen tekrar deneyin."
-
+        return "Yanıt çok uzun sürdü. Tamamı için: https://obs.acibadem.edu.tr/oibs/bologna/"
     except ConnectionError:
-        logger.error("Ollama API bağlantı hatası.")
-        return "Sistem bağlantısı şu an kurulamadı. Sunucu servisi durmuş olabilir."
-
+        return "Sistem bağlantısı kurulamadı."
     except RequestException as e:
-        logger.critical(f"Beklenmedik bir Request hatası: {str(e)}")
-        return "İşlem sırasında beklenmedik bir hata oluştu."
+        logger.error(f"Ollama request error: {e}")
+        return "İşlem sırasında bir hata oluştu."
