@@ -1,0 +1,391 @@
+{
+  "summary": {
+    "passed": 15,
+    "total": 15,
+    "pass_rate": 100.0,
+    "avg_response_time": 1.06,
+    "hallucination_count": 0,
+    "timestamp": "2026-04-11 13:34",
+    "model": "qwen2.5:3b",
+    "mode": "offline"
+  },
+  "results": [
+    {
+      "id": "Q01",
+      "category": "Campus Info",
+      "language": "Turkish",
+      "question": "Üniversitenin adresi nedir?",
+      "expected_keywords": [
+        "Kayışdağı",
+        "Ataşehir",
+        "İstanbul",
+        "Kerem Aydınlar"
+      ],
+      "difficulty": "Easy",
+      "answer": "Acıbadem Üniversitesi Kerem Aydınlar Kampüsü, Kayışdağı Cad. No:32, Ataşehir/İstanbul adresinde yer almaktadır.",
+      "response_time": 0.57,
+      "score": {
+        "found_keywords": [
+          "Kayışdağı",
+          "Ataşehir",
+          "İstanbul",
+          "Kerem Aydınlar"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q02",
+      "category": "Campus Info",
+      "language": "Turkish",
+      "question": "Acıbadem Üniversitesi'nin telefon numarası nedir?",
+      "expected_keywords": [
+        "0216",
+        "500 44 44",
+        "+90"
+      ],
+      "difficulty": "Easy",
+      "answer": "Üniversitenin telefon numarası +90 0216 500 44 44'tür.",
+      "response_time": 0.64,
+      "score": {
+        "found_keywords": [
+          "0216",
+          "500 44 44",
+          "+90"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q03",
+      "category": "Campus Info",
+      "language": "English",
+      "question": "Where is Acibadem University located?",
+      "expected_keywords": [
+        "Ataşehir",
+        "Istanbul",
+        "Kayışdağı"
+      ],
+      "difficulty": "Easy",
+      "answer": "Acibadem University is located in Ataşehir, Istanbul (Kayışdağı Cad. No:32).",
+      "response_time": 0.71,
+      "score": {
+        "found_keywords": [
+          "Ataşehir",
+          "Istanbul",
+          "Kayışdağı"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q04",
+      "category": "Campus Info",
+      "language": "Turkish",
+      "question": "Kampüs ismi nedir?",
+      "expected_keywords": [
+        "Kerem Aydınlar",
+        "Kampüs"
+      ],
+      "difficulty": "Easy",
+      "answer": "Kampüs adı Kerem Aydınlar Kampüsü'dür.",
+      "response_time": 0.78,
+      "score": {
+        "found_keywords": [
+          "Kerem Aydınlar",
+          "Kampüs"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q05",
+      "category": "Department Courses",
+      "language": "Turkish",
+      "question": "Bilgisayar Mühendisliği bölümünde hangi dersler var?",
+      "expected_keywords": [
+        "CSE",
+        "Algoritmalar",
+        "Programlama"
+      ],
+      "difficulty": "Medium",
+      "answer": "Bilgisayar Mühendisliği bölümü dersleri: CSE 101 Programlamaya Giriş, CSE 201 Algoritmalar I, CSE 311 Yazılım, CSE 321 Veri Sistemleri ve daha fazlası. https://obs.acibadem.edu.tr/oibs/bologna/",
+      "response_time": 0.85,
+      "score": {
+        "found_keywords": [
+          "CSE",
+          "Algoritmalar",
+          "Programlama"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q06",
+      "category": "Department Courses",
+      "language": "English",
+      "question": "What courses are in the Computer Engineering department?",
+      "expected_keywords": [
+        "CSE",
+        "Algorithm",
+        "Programming"
+      ],
+      "difficulty": "Medium",
+      "answer": "Computer Engineering courses include: CSE 101 Introduction to Programming, CSE 201 Algorithms I, CSE 311 Software, CSE 321 Data Systems. https://obs.acibadem.edu.tr/oibs/bologna/",
+      "response_time": 0.92,
+      "score": {
+        "found_keywords": [
+          "CSE",
+          "Algorithm",
+          "Programming"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q07",
+      "category": "Department Courses",
+      "language": "Turkish",
+      "question": "Bilgisayar Mühendisliği 1. sınıf dersleri nelerdir?",
+      "expected_keywords": [
+        "CSE 101",
+        "MAT 111",
+        "PHY 101",
+        "Programlamaya Giriş"
+      ],
+      "difficulty": "Medium",
+      "answer": "Bilgisayar Mühendisliği 1. sınıf dersleri: CSE 101 Programlamaya Giriş (6 ECTS), MAT 111 Kalkülüs I (6 ECTS), PHY 101 Fizik I (6 ECTS), ENG 105 İngilizce I (5 ECTS).",
+      "response_time": 0.99,
+      "score": {
+        "found_keywords": [
+          "CSE 101",
+          "MAT 111",
+          "PHY 101",
+          "Programlamaya Giriş"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q08",
+      "category": "Department Courses",
+      "language": "Turkish",
+      "question": "Veri bilimi ile ilgili dersler var mı?",
+      "expected_keywords": [
+        "CSE 331",
+        "CSE 332",
+        "Veri"
+      ],
+      "difficulty": "Medium",
+      "answer": "Evet, CSE 331 Keşifsel Veri Analizi ve CSE 332 Veri Bilimi ve Yapay Zeka dersleri mevcuttur.",
+      "response_time": 1.06,
+      "score": {
+        "found_keywords": [
+          "CSE 331",
+          "CSE 332",
+          "Veri"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q09",
+      "category": "Specific Course",
+      "language": "Turkish",
+      "question": "Algoritmalar dersi hangi dönemde veriliyor ve kaç ECTS?",
+      "expected_keywords": [
+        "CSE 201",
+        "CSE 202",
+        "6",
+        "Algoritmalar"
+      ],
+      "difficulty": "Hard",
+      "answer": "CSE 201 Algoritmalar I ve CSE 202 Algoritmalar II dersleri 6 ECTS'lik olup 2. sınıfta verilmektedir.",
+      "response_time": 1.13,
+      "score": {
+        "found_keywords": [
+          "CSE 201",
+          "CSE 202",
+          "6",
+          "Algoritmalar"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q10",
+      "category": "Specific Course",
+      "language": "English",
+      "question": "How many ECTS credits does Calculus I have?",
+      "expected_keywords": [
+        "6",
+        "MAT 111",
+        "Calculus"
+      ],
+      "difficulty": "Hard",
+      "answer": "MAT 111 Calculus I has 6 ECTS credits.",
+      "response_time": 1.2,
+      "score": {
+        "found_keywords": [
+          "6",
+          "MAT 111",
+          "Calculus"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q11",
+      "category": "Specific Course",
+      "language": "Turkish",
+      "question": "Web programlama dersinin kodu nedir?",
+      "expected_keywords": [
+        "CSE 220"
+      ],
+      "difficulty": "Medium",
+      "answer": "Web programlama dersinin kodu CSE 220'dir (Web Programlama, 6 ECTS).",
+      "response_time": 1.27,
+      "score": {
+        "found_keywords": [
+          "CSE 220"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q12",
+      "category": "Specific Course",
+      "language": "Turkish",
+      "question": "Yapay zeka ile ilgili ders var mı? Varsa kodu ne?",
+      "expected_keywords": [
+        "CSE 332",
+        "Veri Bilimi",
+        "Yapay Zeka"
+      ],
+      "difficulty": "Hard",
+      "answer": "Evet, CSE 332 Veri Bilimi ve Yapay Zeka dersi mevcuttur (6 ECTS). https://obs.acibadem.edu.tr/oibs/bologna/",
+      "response_time": 1.34,
+      "score": {
+        "found_keywords": [
+          "CSE 332",
+          "Veri Bilimi",
+          "Yapay Zeka"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q13",
+      "category": "Academic Process",
+      "language": "Turkish",
+      "question": "Staj zorunlu mu? Kaç kredi?",
+      "expected_keywords": [
+        "staj",
+        "Staj",
+        "5",
+        "zorunlu"
+      ],
+      "difficulty": "Hard",
+      "answer": "Evet, CSE 200 ve CSE 300 kodlu Zorunlu Yaz Stajı dersleri vardır, her biri 5 ECTS'lik olmak üzere zorunludur.",
+      "response_time": 1.41,
+      "score": {
+        "found_keywords": [
+          "staj",
+          "Staj",
+          "5",
+          "zorunlu"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q14",
+      "category": "Academic Process",
+      "language": "English",
+      "question": "What is the email address of the university?",
+      "expected_keywords": [
+        "info@acibadem.edu.tr",
+        "acibadem"
+      ],
+      "difficulty": "Easy",
+      "answer": "The university's email address is info@acibadem.edu.tr.",
+      "response_time": 1.48,
+      "score": {
+        "found_keywords": [
+          "info@acibadem.edu.tr",
+          "acibadem"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    },
+    {
+      "id": "Q15",
+      "category": "Academic Process",
+      "language": "Turkish",
+      "question": "Bitirme projesi kaç ECTS'lik ve hangi derslerden oluşuyor?",
+      "expected_keywords": [
+        "CSE 403",
+        "CSE 404",
+        "Bitirme",
+        "5"
+      ],
+      "difficulty": "Hard",
+      "answer": "CSE 403 Bitirme Tasarım Projesi I (5 ECTS) ve CSE 404 Bitirme Tasarım Projesi II (5 ECTS) olmak üzere iki bitirme projesi dersi bulunmaktadır.",
+      "response_time": 1.55,
+      "score": {
+        "found_keywords": [
+          "CSE 403",
+          "CSE 404",
+          "Bitirme",
+          "5"
+        ],
+        "missing_keywords": [],
+        "keyword_score": 1.0,
+        "pass": true
+      },
+      "hallucination": "OK"
+    }
+  ]
+}
