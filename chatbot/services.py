@@ -81,22 +81,27 @@ def _expand_query_to_turkish(query: str) -> str:
 
 
 SYSTEM_PROMPT = """You are an ACUBOT assistant for Acıbadem University. 
-- ALWAYS answer in the student's language.
-- CRITICAL: If answering in English, you MUST translate the Turkish course names from the context into English natively (e.g., replace 'Programlamaya Giriş' with 'Introduction to Programming', 'Algoritmalar' with 'Algorithms', 'Veri Sistemleri' with 'Data Systems', 'Bilgisayar Ağları' with 'Computer Networks'). NEVER just copy the Turkish names if you are writing an English response!
+- CONTEXT ONLY RULE: You MUST base your answer ONLY on the provided Context. If the context does NOT contain the answer, say "Bilmiyorum" (if Turkish) or "I don't know" (if English). Do NOT guess. If the context DOES contain the answer, provide it directly WITHOUT saying "Bilmiyorum".
+- STAY ON TOPIC: Answer EXACTLY what the user asks. If the user asks for directions, how to go, or location (e.g., "nasıl giderim", "nerede", "adres"), the physical address in the context IS the answer. Provide ONLY the address and do NOT say "Bilmiyorum". Do NOT give web links or enrollment instructions.
+- LANGUAGE RULE: ALWAYS answer in the EXACT SAME language as the user's prompt. If Turkish, reply in Turkish.
+- NO HALLUCINATION: Do not make up any information, including department heads, course codes, names, or addresses.
+- CRITICAL: If answering in English, you MUST translate the Turkish course names from the context into English natively.
 - When asked for department courses: 
     - Identify the technical course codes in the context (e.g., CSE for Computer Eng, BME for Biomedical).
     - Prioritize those technical codes. Exclude internships, projects, theses, and electives.
     - Keep answers brief. 
-- IMPORTANT: Provide the official course list link ONLY ONCE at the end of your response: https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=tr&curOp=showPac&curUnit=04&curSunit=6166#"""
-
+- IMPORTANT: Provide the official course list link ONLY ONCE at the end of your response if the question is about specific courses: https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=tr&curOp=showPac"""
 
 def ask_acubot(user_message: str, _conversation_history: list | None = None) -> str:
 
     search_query = _expand_query_to_turkish(user_message)
     context = get_retrieval_context(search_query, search_method='hybrid')
     query_lower = user_message.lower()
-    if any(k in query_lower for k in ["ders", "course", "bölüm", "department"]):
-        context['university_info'] = []
+
+    is_contact_query = any(k in query_lower for k in ["adres", "nerede", "nasıl", "giderim", "iletişim", "kampüs", "ulaşım", "konum"])
+
+    if is_contact_query:
+        context['courses'] = []
 
     if context.get('courses'):
         unwanted = ['staj', 'tez', 'bitirme', 'proje', 'genel', 'seçmeli', 'etiği', 'yaz']
@@ -122,7 +127,7 @@ def ask_acubot(user_message: str, _conversation_history: list | None = None) -> 
         "prompt": prompt,
         "stream": False,
         "options": {
-            "temperature": 0.4,
+            "temperature": 0.1,
             "top_p": 0.9,
             "num_predict": 1024,
         },

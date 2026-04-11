@@ -187,9 +187,9 @@ def get_retrieval_context(user_query, search_method='hybrid'):
     else:
         courses = retrieve_courses_hybrid(user_query, limit=50)
     
-    departments = retrieve_departments_full_text(user_query, limit=3)
-    university_info = retrieve_university_info(user_query, limit=2)
-    faculties = retrieve_faculties_full_text(user_query, limit=2)
+    departments = retrieve_departments_full_text(user_query, limit=10)
+    university_info = retrieve_university_info(user_query, limit=30)
+    faculties = retrieve_faculties_full_text(user_query, limit=20)
     
     context = {
         'courses': courses,

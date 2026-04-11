@@ -1,6 +1,8 @@
 {
     "homepage_titles": [
         "Ana gezinti menüsü",
+        "Ana gezinti menüsü",
+        "Ana gezinti menüsü",
         "Üniversite",
         "Öğrenci",
         "Akademik",
@@ -17,7 +19,23 @@
         "campus": "Kerem Aydınlar Kampüsü",
         "address": "Kayışdağı cad. No:32 Ataşehir/İstanbul",
         "phone": "+90 0216 500 44 44",
-        "email": "info@acibadem.edu.tr"
+        "email": "info@acibadem.edu.tr",
+        "bilgisayar_muhendisligi_bolum_baskani": "Prof. Dr. Ahmet Bulut"
     },
-    "faculties": []
+    "faculties": [
+        "Tıp Fakültesi",
+        "Eczacılık Fakültesi",
+        "Sağlık Bilimleri Fakültesi",
+        "İnsan ve Toplum Bilimleri Fakültesi",
+        "Mühendislik ve Doğa Bilimleri Fakültesi",
+        "Sağlık Hizmetleri Meslek Yüksekokulu",
+        "Meslek Yüksekokulu",
+        "Sağlık Bilimleri Enstitüsü",
+        "Sosyal Bilimler Enstitüsü",
+        "Fen Bilimleri Enstitüsü",
+        "Senoloji Araştırma Enstitüsü",
+        "Atatürk İlkeleri ve İnkılap Tarihi",
+        "Türk Dili",
+        "Yabancı Diller"
+    ]
 }
