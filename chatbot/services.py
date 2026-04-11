@@ -82,11 +82,12 @@ def _expand_query_to_turkish(query: str) -> str:
 
 SYSTEM_PROMPT = """You are an ACUBOT assistant for Acıbadem University. 
 - ALWAYS answer in the student's language.
+- If the student asks in English, translate the course names and context into English.
 - When asked for department courses: 
     - Identify the technical course codes in the context (e.g., CSE for Computer Eng, BME for Biomedical).
     - Prioritize those technical codes. Exclude internships, projects, theses, and electives.
     - Keep answers brief. 
-- IMPORTANT: Provide the official course list link ONLY ONCE at the end of your response: https://obs.acibadem.edu.tr/oibs/bologna/"""
+- IMPORTANT: Provide the official course list link ONLY ONCE at the end of your response: https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=tr&curOp=showPac&curUnit=04&curSunit=6166#"""
 
 
 def ask_acubot(user_message: str, _conversation_history: list | None = None) -> str:
@@ -138,7 +139,7 @@ def ask_acubot(user_message: str, _conversation_history: list | None = None) -> 
 
 
     except Timeout:
-        return "Yanıt çok uzun sürdü. Tamamı için: https://obs.acibadem.edu.tr/oibs/bologna/"
+        return "Yanıt çok uzun sürdü. Tamamı için: https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=tr&curOp=showPac&curUnit=04&curSunit=6166#"
     except ConnectionError:
         return "Sistem bağlantısı kurulamadı."
     except RequestException as e:
