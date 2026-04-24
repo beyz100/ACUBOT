@@ -37,6 +37,13 @@ def seed_bologna_courses(flush=False):
         'Bilgisayar Mühendisliği': 'Mühendislik ve Doğa Bilimleri Fakültesi',
         'Biyomedikal Mühendisliği': 'Mühendislik ve Doğa Bilimleri Fakültesi',
         'Endüstri Mühendisliği': 'Mühendislik ve Doğa Bilimleri Fakültesi',
+        'Tıp': 'Tıp Fakültesi',
+        'Eczacılık': 'Eczacılık Fakültesi',
+        'Psikoloji': 'İnsan ve Toplum Bilimleri Fakültesi',
+        'Sosyoloji': 'İnsan ve Toplum Bilimleri Fakültesi',
+        'Hemşirelik': 'Sağlık Bilimleri Fakültesi',
+        'Beslenme ve Diyetetik': 'Sağlık Bilimleri Fakültesi',
+        'Fizyoterapi ve Rehabilitasyon': 'Sağlık Bilimleri Fakültesi'
     }
 
     added = 0

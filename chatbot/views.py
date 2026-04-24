@@ -9,9 +9,41 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes
 
 from .services import ask_acubot
+from .models import Conversation, ChatMessage
 
 CHAT_HISTORY_SESSION_KEY = "acubot_chat_history"
+CONVERSATION_ID_SESSION_KEY = "acubot_conversation_id"
 MAX_CHAT_TURNS = 25
+
+
+def _get_or_create_conversation(request):
+    """Get existing conversation from session or create a new one."""
+    if not request.session.session_key:
+        request.session.create()
+
+    conv_id = request.session.get(CONVERSATION_ID_SESSION_KEY)
+    if conv_id:
+        try:
+            return Conversation.objects.get(pk=conv_id)
+        except Conversation.DoesNotExist:
+            pass
+
+    conversation = Conversation.objects.create(
+        session_key=request.session.session_key or "anonymous"
+    )
+    request.session[CONVERSATION_ID_SESSION_KEY] = conversation.pk
+    return conversation
+
+
+def _save_messages_to_db(conversation, user_text, bot_text):
+    """Persist a user+assistant message pair to PostgreSQL."""
+    ChatMessage.objects.create(
+        conversation=conversation, role='user', text=user_text
+    )
+    ChatMessage.objects.create(
+        conversation=conversation, role='assistant', text=bot_text
+    )
+    conversation.save()  # updates updated_at
 
 
 @ensure_csrf_cookie
@@ -19,6 +51,8 @@ MAX_CHAT_TURNS = 25
 def chat_ui(request):
     if request.method == "POST" and request.POST.get("clear_history"):
         request.session[CHAT_HISTORY_SESSION_KEY] = []
+        # Start a fresh conversation for the next messages
+        request.session.pop(CONVERSATION_ID_SESSION_KEY, None)
         request.session.modified = True
         return redirect(reverse("acubot_chat"))
 
@@ -40,6 +74,11 @@ def chat_ui(request):
                 history = history[-(MAX_CHAT_TURNS * 2) :]
             request.session[CHAT_HISTORY_SESSION_KEY] = history
             request.session.modified = True
+
+            # --- Persist to PostgreSQL ---
+            conversation = _get_or_create_conversation(request)
+            _save_messages_to_db(conversation, message, reply)
+
             return redirect(reverse("acubot_chat"))
 
     history = request.session.get(CHAT_HISTORY_SESSION_KEY, [])
@@ -63,8 +102,10 @@ def chat_with_acubot(request):
 
     bot_response = ask_acubot(user_message, _conversation_history=conversation_history)
 
+    # --- Persist to PostgreSQL ---
+    conversation = _get_or_create_conversation(request)
+    _save_messages_to_db(conversation, user_message, bot_response)
+
     return Response({
         "response": bot_response
     }, status=status.HTTP_200_OK)
-
-

@@ -115,8 +115,7 @@ def ask_acubot(user_message: str, _conversation_history: list | None = None) -> 
 
         def course_priority(c):
             if c.code.upper().startswith(priority_code): return 0
-            if any(c.code.upper().startswith(p) for p in ['MAT', 'PHY', 'BME']): return 1
-            return 2
+            return 1
         context['courses'] = sorted(filtered, key=course_priority)[:10]
 
     context_text = format_context_for_llm(context)
