@@ -10,7 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+
+def _env_bool(name, default=False):
+    return os.environ.get(name, str(int(default))).strip().lower() in {"1", "true", "yes", "on"}
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +26,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-2lzftp8!mhn9)2&cl8^$$0b(jjsunvp&5=c)#bic#da^ah35wl"
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-2lzftp8!mhn9)2&cl8^$$0b(jjsunvp&5=c)#bic#da^ah35wl",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool("DJANGO_DEBUG", default=True)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
+    if h.strip()
+]
 
 
 # Application definition
@@ -80,11 +93,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'acubot_db',
-        'USER': 'acubot_user',
-        'PASSWORD': 'supergizlisifre',
-        'HOST': 'db',  
-        'PORT': '5432',
+        'NAME': os.environ.get('POSTGRES_DB', 'acubot_db'),
+        'USER': os.environ.get('POSTGRES_USER', 'acubot_user'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'supergizlisifre'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
 
@@ -130,3 +143,32 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+# --- LLM configuration ---
+# Where the Ollama HTTP API lives (default: in-cluster service "llm").
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://llm:11434")
+# Default model is tuned for laptops without GPU acceleration. Override via
+# the OLLAMA_MODEL env var if you have more horsepower (e.g. llama3.1:8b).
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
+# Long enough to let a 3B-class model on CPU finish a full department's
+# course catalogue (~50 rows). Bump higher if you're on slower hardware.
+OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "360"))
+# Keep the model resident in RAM between requests so we don't pay a 10-30 s
+# load cost on every question. Ollama accepts strings like "1h", "30m", "0".
+OLLAMA_KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE", "1h")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "%(levelname)s %(name)s | %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "simple"},
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {
+        "chatbot": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "courses": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
