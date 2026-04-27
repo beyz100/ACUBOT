@@ -1,0 +1,69 @@
+[
+    {
+        "faculty": "Tıp Fakültesi",
+        "name": "Tıp",
+        "name_en": "Medicine",
+        "description": "Altı yıllık tıp doktoru programı. Eğitim dili Türkçedir."
+    },
+    {
+        "faculty": "Eczacılık Fakültesi",
+        "name": "Eczacılık",
+        "name_en": "Pharmacy",
+        "description": "Beş yıllık eczacı (PharmD) programı."
+    },
+    {
+        "faculty": "Sağlık Bilimleri Fakültesi",
+        "name": "Hemşirelik",
+        "name_en": "Nursing",
+        "description": "Dört yıllık hemşirelik lisans programı; Türkçe ve İngilizce seçenekleri vardır."
+    },
+    {
+        "faculty": "Sağlık Bilimleri Fakültesi",
+        "name": "Fizyoterapi ve Rehabilitasyon",
+        "name_en": "Physiotherapy and Rehabilitation",
+        "description": "Dört yıllık fizyoterapi lisans programı."
+    },
+    {
+        "faculty": "Sağlık Bilimleri Fakültesi",
+        "name": "Beslenme ve Diyetetik",
+        "name_en": "Nutrition and Dietetics",
+        "description": "Dört yıllık beslenme ve diyetetik lisans programı; Türkçe ve İngilizce seçenekleri vardır."
+    },
+    {
+        "faculty": "Sağlık Bilimleri Fakültesi",
+        "name": "Sağlık Yönetimi",
+        "name_en": "Health Management",
+        "description": "Dört yıllık sağlık yönetimi lisans programı."
+    },
+    {
+        "faculty": "İnsan ve Toplum Bilimleri Fakültesi",
+        "name": "Psikoloji",
+        "name_en": "Psychology",
+        "description": "Dört yıllık psikoloji lisans programı; Türkçe ve İngilizce seçenekleri vardır."
+    },
+    {
+        "faculty": "İnsan ve Toplum Bilimleri Fakültesi",
+        "name": "Sosyoloji",
+        "name_en": "Sociology",
+        "description": "Dört yıllık sosyoloji lisans programı."
+    },
+    {
+        "faculty": "Mühendislik ve Doğa Bilimleri Fakültesi",
+        "name": "Bilgisayar Mühendisliği",
+        "name_en": "Computer Engineering",
+        "description": "Dört yıllık bilgisayar mühendisliği lisans programı; eğitim dili İngilizcedir.",
+        "program_url": "https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=tr&curOp=showPac&curUnit=14&curSunit=6246"
+    },
+    {
+        "faculty": "Mühendislik ve Doğa Bilimleri Fakültesi",
+        "name": "Biyomedikal Mühendisliği",
+        "name_en": "Biomedical Engineering",
+        "description": "Dört yıllık biyomedikal mühendislik lisans programı."
+    },
+    {
+        "faculty": "Mühendislik ve Doğa Bilimleri Fakültesi",
+        "name": "Moleküler Biyoloji ve Genetik",
+        "name_en": "Molecular Biology and Genetics",
+        "description": "Dört yıllık moleküler biyoloji ve genetik lisans programı."
+    }
+]

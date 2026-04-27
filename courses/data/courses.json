@@ -1,0 +1,78 @@
+[
+    {"department": "Bilgisayar Mühendisliği", "code": "CHE 101", "name": "Genel Kimya", "name_en": "General Chemistry", "ects": 6, "semester": 1},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 101", "name": "Programlamaya Giriş", "name_en": "Introduction to Programming", "ects": 6, "semester": 1},
+    {"department": "Bilgisayar Mühendisliği", "code": "ENG 105", "name": "Akademik Amaçlar için İngilizce I", "name_en": "English for Academic Purposes I", "ects": 5, "semester": 1},
+    {"department": "Bilgisayar Mühendisliği", "code": "MAT 111", "name": "Kalkülüs I", "name_en": "Calculus I", "ects": 6, "semester": 1},
+    {"department": "Bilgisayar Mühendisliği", "code": "PHY 101", "name": "Fizik I", "name_en": "Physics I", "ects": 6, "semester": 1},
+    {"department": "Bilgisayar Mühendisliği", "code": "TUR 101", "name": "Türk Dili I", "name_en": "Turkish Language I", "ects": 2, "semester": 1},
+
+    {"department": "Bilgisayar Mühendisliği", "code": "BME 102", "name": "Mühendisler için Biyolojik Bilimler", "name_en": "Biological Sciences for Engineers", "ects": 6, "semester": 2},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 102", "name": "Programlama Pratiği", "name_en": "Programming Practice", "ects": 6, "semester": 2},
+    {"department": "Bilgisayar Mühendisliği", "code": "ENG 106", "name": "Akademik Amaçlar için İngilizce II", "name_en": "English for Academic Purposes II", "ects": 5, "semester": 2},
+    {"department": "Bilgisayar Mühendisliği", "code": "MAT 112", "name": "Kalkülüs II", "name_en": "Calculus II", "ects": 6, "semester": 2},
+    {"department": "Bilgisayar Mühendisliği", "code": "PHY 102", "name": "Fizik II", "name_en": "Physics II", "ects": 6, "semester": 2},
+    {"department": "Bilgisayar Mühendisliği", "code": "TUR 102", "name": "Türk Dili II", "name_en": "Turkish Language II", "ects": 2, "semester": 2},
+
+    {"department": "Bilgisayar Mühendisliği", "code": "BME 105", "name": "Bilimde Beşeri Yaklaşımlar", "name_en": "Humanistic Approaches to Science", "ects": 1, "semester": 3},
+    {"department": "Bilgisayar Mühendisliği", "code": "BME 207", "name": "Mühendisler için Ekonomi", "name_en": "Economics for Engineers", "ects": 5, "semester": 3},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 201", "name": "Algoritmalar I", "name_en": "Algorithms I", "ects": 6, "semester": 3},
+    {"department": "Bilgisayar Mühendisliği", "code": "MAT 211", "name": "Lineer Cebir", "name_en": "Linear Algebra", "ects": 6, "semester": 3},
+    {"department": "Bilgisayar Mühendisliği", "code": "MAT 241", "name": "Ayrık Matematik", "name_en": "Discrete Mathematics", "ects": 6, "semester": 3},
+    {"department": "Bilgisayar Mühendisliği", "code": "ACU 2001", "name": "Seçmeli Ders", "name_en": "Elective", "ects": 3, "semester": 3},
+
+    {"department": "Bilgisayar Mühendisliği", "code": "BME 210", "name": "Mühendislik Etiği", "name_en": "Engineering Ethics", "ects": 4, "semester": 4},
+    {"department": "Bilgisayar Mühendisliği", "code": "BME 218", "name": "Olasılık ve Biyoistatistik", "name_en": "Probability and Biostatistics", "ects": 5, "semester": 4},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 200", "name": "Zorunlu Yaz Stajı", "name_en": "Mandatory Summer Internship", "ects": 5, "semester": 4},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 202", "name": "Algoritmalar II", "name_en": "Algorithms II", "ects": 6, "semester": 4},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 220", "name": "Web Programlama", "name_en": "Web Programming", "ects": 6, "semester": 4},
+    {"department": "Bilgisayar Mühendisliği", "code": "MAT 222", "name": "Diferansiyel Denklemler", "name_en": "Differential Equations", "ects": 6, "semester": 4},
+    {"department": "Bilgisayar Mühendisliği", "code": "ACU 2002", "name": "Seçmeli Ders", "name_en": "Elective", "ects": 3, "semester": 4},
+
+    {"department": "Bilgisayar Mühendisliği", "code": "ATA 101", "name": "Atatürk İlkeleri ve İnkılap Tarihi I", "name_en": "Atatürk's Principles and History of Revolution I", "ects": 2, "semester": 5},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 301", "name": "Bilgisayar Mimarisi", "name_en": "Computer Architecture", "ects": 6, "semester": 5},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 311", "name": "Yazılım Mühendisliği", "name_en": "Software Engineering", "ects": 6, "semester": 5},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 321", "name": "Veri Sistemleri", "name_en": "Data Systems", "ects": 6, "semester": 5},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 331", "name": "Keşifsel Veri Analizi", "name_en": "Exploratory Data Analysis", "ects": 6, "semester": 5},
+    {"department": "Bilgisayar Mühendisliği", "code": "ACU 3001", "name": "Seçmeli Ders", "name_en": "Elective", "ects": 3, "semester": 5},
+
+    {"department": "Bilgisayar Mühendisliği", "code": "ATA 102", "name": "Atatürk İlkeleri ve İnkılap Tarihi II", "name_en": "Atatürk's Principles and History of Revolution II", "ects": 2, "semester": 6},
+    {"department": "Bilgisayar Mühendisliği", "code": "BME 320", "name": "Proje Yönetimi", "name_en": "Project Management", "ects": 3, "semester": 6},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 300", "name": "Zorunlu Yaz Stajı", "name_en": "Mandatory Summer Internship", "ects": 5, "semester": 6},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 302", "name": "İşletim Sistemleri", "name_en": "Operating Systems", "ects": 6, "semester": 6},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 312", "name": "Bilgisayar Ağları ve Sosyal Ağlar", "name_en": "Computer Networks and Social Networks", "ects": 6, "semester": 6},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 322", "name": "Bulut Bilişim", "name_en": "Cloud Computing", "ects": 6, "semester": 6},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 332", "name": "Veri Bilimi ve Yapay Zeka", "name_en": "Data Science and Artificial Intelligence", "ects": 6, "semester": 6},
+
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 403", "name": "Bitirme Tasarım Projesi I", "name_en": "Capstone Design Project I", "ects": 5, "semester": 7},
+    {"department": "Bilgisayar Mühendisliği", "code": "ACU 4001", "name": "Seçmeli Ders", "name_en": "Elective", "ects": 6, "semester": 7},
+    {"department": "Bilgisayar Mühendisliği", "code": "ADS 4001", "name": "Genel Seçmeli", "name_en": "General Elective", "ects": 5, "semester": 7},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 4001", "name": "Teknik Seçmeli", "name_en": "Technical Elective", "ects": 14, "semester": 7},
+
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 404", "name": "Bitirme Tasarım Projesi II", "name_en": "Capstone Design Project II", "ects": 5, "semester": 8},
+    {"department": "Bilgisayar Mühendisliği", "code": "ACU 4002", "name": "Seçmeli Ders", "name_en": "Elective", "ects": 3, "semester": 8},
+    {"department": "Bilgisayar Mühendisliği", "code": "ADS 4002", "name": "Genel Seçmeli", "name_en": "General Elective", "ects": 5, "semester": 8},
+    {"department": "Bilgisayar Mühendisliği", "code": "CSE 4002", "name": "Teknik Seçmeli", "name_en": "Technical Elective", "ects": 21, "semester": 8},
+
+    {"department": "Biyomedikal Mühendisliği", "code": "BME 101", "name": "Biyomedikal Mühendisliğine Giriş", "name_en": "Introduction to Biomedical Engineering", "ects": 4, "semester": 1},
+    {"department": "Biyomedikal Mühendisliği", "code": "BME 201", "name": "Biyomalzemeler", "name_en": "Biomaterials", "ects": 6, "semester": 3},
+    {"department": "Biyomedikal Mühendisliği", "code": "BME 301", "name": "Medikal Görüntüleme", "name_en": "Medical Imaging", "ects": 6, "semester": 5},
+    {"department": "Biyomedikal Mühendisliği", "code": "BME 311", "name": "Biyosensörler", "name_en": "Biosensors", "ects": 6, "semester": 5},
+
+    {"department": "Tıp", "code": "MED 101", "name": "Tıbbi Biyoloji ve Genetik", "name_en": "Medical Biology and Genetics", "ects": 6, "semester": 1},
+    {"department": "Tıp", "code": "MED 102", "name": "Tıbbi Biyokimya", "name_en": "Medical Biochemistry", "ects": 6, "semester": 2},
+    {"department": "Tıp", "code": "MED 201", "name": "Anatomi", "name_en": "Anatomy", "ects": 8, "semester": 3},
+    {"department": "Tıp", "code": "MED 202", "name": "Fizyoloji", "name_en": "Physiology", "ects": 8, "semester": 4},
+
+    {"department": "Hemşirelik", "code": "NUR 101", "name": "Hemşirelik Esasları", "name_en": "Fundamentals of Nursing", "ects": 8, "semester": 1},
+    {"department": "Hemşirelik", "code": "NUR 201", "name": "İç Hastalıkları Hemşireliği", "name_en": "Internal Medicine Nursing", "ects": 10, "semester": 3},
+    {"department": "Hemşirelik", "code": "NUR 301", "name": "Cerrahi Hastalıkları Hemşireliği", "name_en": "Surgical Nursing", "ects": 10, "semester": 5},
+
+    {"department": "Eczacılık", "code": "PHA 101", "name": "Eczacılığa Giriş", "name_en": "Introduction to Pharmacy", "ects": 4, "semester": 1},
+    {"department": "Eczacılık", "code": "PHA 201", "name": "Farmasötik Kimya", "name_en": "Pharmaceutical Chemistry", "ects": 6, "semester": 3},
+
+    {"department": "Psikoloji", "code": "PSY 101", "name": "Psikolojiye Giriş", "name_en": "Introduction to Psychology", "ects": 6, "semester": 1},
+    {"department": "Psikoloji", "code": "PSY 201", "name": "Gelişim Psikolojisi", "name_en": "Developmental Psychology", "ects": 6, "semester": 3},
+
+    {"department": "Sağlık Yönetimi", "code": "HM 101", "name": "Sağlık Yönetimine Giriş", "name_en": "Introduction to Health Management", "ects": 6, "semester": 1},
+    {"department": "Sağlık Yönetimi", "code": "HM 201", "name": "Sağlık Ekonomisi", "name_en": "Health Economics", "ects": 6, "semester": 3}
+]

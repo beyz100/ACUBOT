@@ -1,0 +1,152 @@
+[
+    {
+        "category": "contact",
+        "key": "phone",
+        "value": "+90 216 500 44 44",
+        "keywords": "telefon, tel, phone, telephone, iletişim numarası"
+    },
+    {
+        "category": "contact",
+        "key": "email",
+        "value": "info@acibadem.edu.tr",
+        "keywords": "eposta, e-posta, email, mail, iletişim"
+    },
+    {
+        "category": "contact",
+        "key": "address",
+        "value": "Kerem Aydınlar Kampüsü, Kayışdağı Cad. No:32, 34752 Ataşehir / İstanbul",
+        "keywords": "adres, address, konum, location, kampüs adresi"
+    },
+    {
+        "category": "contact",
+        "key": "website",
+        "value": "https://www.acibadem.edu.tr",
+        "keywords": "web sitesi, website, internet sitesi, ana sayfa"
+    },
+    {
+        "category": "campus",
+        "key": "campus_name",
+        "value": "Kerem Aydınlar Kampüsü, Acıbadem Üniversitesi'nin tek kampüsüdür ve İstanbul Ataşehir'de bulunur.",
+        "keywords": "kampüs, campus, kerem aydınlar"
+    },
+    {
+        "category": "campus",
+        "key": "library",
+        "value": "Üniversite kütüphanesi kampüs içinde 7/24 öğrencilere açıktır; sağlık bilimleri başta olmak üzere çok dilli koleksiyona sahiptir.",
+        "keywords": "kütüphane, library, kitap, çalışma alanı"
+    },
+    {
+        "category": "campus",
+        "key": "case_center",
+        "value": "CASE (İleri Düzey Medikal Simülasyon ve Eğitim Merkezi) kampüste yer alan, klinik becerilerin simülasyon ortamında geliştirildiği bir merkezdir.",
+        "keywords": "case, simulation, simülasyon, eğitim merkezi"
+    },
+    {
+        "category": "campus",
+        "key": "transportation",
+        "value": "Kampüse ulaşım için kampüs servisleri, İETT otobüsleri ve metro/metrobüs entegrasyonu kullanılabilir.",
+        "keywords": "ulaşım, transportation, servis, metro, otobüs"
+    },
+    {
+        "category": "academic",
+        "key": "founder",
+        "value": "Acıbadem Üniversitesi, Acıbadem Sağlık ve Eğitim Vakfı (ASEV) tarafından 2007 yılında kurulmuştur.",
+        "keywords": "kurucu, founder, kuruluş, asev, vakıf"
+    },
+    {
+        "category": "academic",
+        "key": "established",
+        "value": "Üniversite 2007 yılında kurulmuştur ve ilk öğrencilerini 2008-2009 akademik yılında almıştır.",
+        "keywords": "kuruluş yılı, ne zaman kuruldu, established, founded"
+    },
+    {
+        "category": "academic",
+        "key": "language",
+        "value": "Tıp Fakültesi'nde eğitim dili Türkçe, Mühendislik ve Doğa Bilimleri Fakültesi'nde ise İngilizcedir. Diğer programların eğitim dilleri program bazında değişmektedir.",
+        "keywords": "eğitim dili, language of instruction, ingilizce, türkçe"
+    },
+    {
+        "category": "academic",
+        "key": "scholarship",
+        "value": "Acıbadem Üniversitesi YKS başarı, ihtiyaç ve sporcu burslarını kapsayan çeşitli burs programları sunar. Detaylar her yıl güncellenen burs yönetmeliğinde yer alır.",
+        "keywords": "burs, scholarship, indirim, bursluluk"
+    },
+    {
+        "category": "academic",
+        "key": "tuition",
+        "value": "Öğrenim ücretleri her akademik yıl başında üniversite tarafından yayınlanır; programlara göre değişir. Güncel bilgi için kayıt ofisine başvurulmalıdır.",
+        "keywords": "öğrenim ücreti, ücret, tuition, fee, harç"
+    },
+    {
+        "category": "admission",
+        "key": "undergraduate_admission",
+        "value": "Lisans programlarına başvurular, Türkiye'deki Yükseköğretim Kurumları Sınavı (YKS) sonuçlarına göre ÖSYM tercih süreci üzerinden alınır.",
+        "keywords": "lisans başvuru, kayıt, admission, undergraduate, yks, ösym"
+    },
+    {
+        "category": "admission",
+        "key": "international_admission",
+        "value": "Uluslararası öğrenciler ACU Yabancı Uyruklu Öğrenci Sınavı veya kabul edilen uluslararası sınav sonuçları (SAT, ACT, A-Level vb.) ile başvurabilir.",
+        "keywords": "international, yabancı uyruklu, uluslararası başvuru"
+    },
+    {
+        "category": "admission",
+        "key": "graduate_admission",
+        "value": "Yüksek lisans ve doktora programlarına başvurular ALES, lisans/yüksek lisans not ortalaması, yabancı dil belgesi ve mülakat aşamalarını kapsar.",
+        "keywords": "yüksek lisans, doktora, graduate, master, phd, ales"
+    },
+    {
+        "category": "academic",
+        "key": "academic_calendar",
+        "value": "Akademik takvim her yıl Senato tarafından güncellenir; güz yarıyılı genellikle Eylül ortasında başlar, bahar yarıyılı Şubat başında başlar.",
+        "keywords": "akademik takvim, academic calendar, dönem başlangıcı, semester"
+    },
+    {
+        "category": "academic",
+        "key": "rector",
+        "value": "Acıbadem Üniversitesi'nin rektörü Prof. Dr. Ahmet Şahin'dir.",
+        "keywords": "rektör, rector, üniversite başkanı"
+    },
+    {
+        "category": "faq",
+        "key": "is_acibadem_a_health_university",
+        "value": "Evet, Acıbadem Üniversitesi sağlık bilimleri odaklı bir vakıf üniversitesidir; bunun yanında mühendislik ve yönetim bilimleri programlarını da yürütür.",
+        "keywords": "sağlık üniversitesi, vakıf üniversitesi, ne tür"
+    },
+    {
+        "category": "faq",
+        "key": "english_preparatory",
+        "value": "Eğitim dili İngilizce olan programlara kayıt yaptıran öğrenciler, yeterlilik sınavını geçemezlerse İngilizce Hazırlık programını tamamlamak zorundadır.",
+        "keywords": "hazırlık, preparatory, prep, ingilizce hazırlık"
+    },
+    {
+        "category": "faq",
+        "key": "double_major",
+        "value": "Acıbadem Üniversitesi belirli programlar arasında çift anadal (ÇAP) ve yandal imkânı sunar; başvuru koşulları her dönem yayımlanır.",
+        "keywords": "çift anadal, çap, yandal, double major, minor"
+    },
+    {
+        "category": "faq",
+        "key": "lab_facilities",
+        "value": "Üniversitede anatomi, simülasyon, hücre kültürü, biyomedikal cihaz, bilgisayar ağı ve yapay zeka laboratuvarları bulunmaktadır.",
+        "keywords": "laboratuvar, lab, laboratuar, facility"
+    },
+    {
+        "category": "general",
+        "key": "mission",
+        "value": "Acıbadem Üniversitesi'nin misyonu, sağlık alanında bilimsel araştırma ve nitelikli eğitimle topluma katkı sağlayan profesyoneller yetiştirmektir.",
+        "keywords": "misyon, mission, hedef, vision"
+    },
+    {
+        "category": "general",
+        "key": "vision",
+        "value": "Üniversitenin vizyonu, sağlık ve mühendislik alanlarında uluslararası alanda tanınan bir araştırma ve eğitim merkezi olmaktır.",
+        "keywords": "vizyon, vision"
+    },
+    {
+        "category": "navigation",
+        "key": "main_menu",
+        "value": "Ana menü başlıkları: Üniversite, Akademik, Öğrenci, Araştırma, Sürdürülebilir Kampüs, Aday Öğrenci, International.",
+        "keywords": "ana menü, navigation, menu"
+    }
+]
