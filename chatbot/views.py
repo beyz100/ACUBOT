@@ -5,10 +5,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import permission_classes
 
-from .services import ask_acubot
+from .services import ask
 from .models import Conversation, ChatMessage
 
 CHAT_HISTORY_SESSION_KEY = "acubot_chat_history"
@@ -46,6 +44,12 @@ def _save_messages_to_db(conversation, user_text, bot_text):
     conversation.save()  # updates updated_at
 
 
+def _history_for_llm(history):
+    """Convert the [{role, text}] session list into the (role, content)
+    tuples expected by chatbot.services.ask()."""
+    return [(item["role"], item["text"]) for item in history if "role" in item]
+
+
 @ensure_csrf_cookie
 @require_http_methods(["GET", "POST"])
 def chat_ui(request):
@@ -63,11 +67,11 @@ def chat_ui(request):
             error = "Please enter a question."
         else:
             history = request.session.get(CHAT_HISTORY_SESSION_KEY, [])
-            reply = ask_acubot(message, conversation_history=history)
+            reply = ask(message, history=_history_for_llm(history))
             history.extend(
                 [
                     {"role": "user", "text": message},
-                    {"role": "assistant", "text": reply},
+                    {"role": "assistant", "text": reply.text},
                 ]
             )
             if len(history) > MAX_CHAT_TURNS * 2:
@@ -77,7 +81,7 @@ def chat_ui(request):
 
             # --- Persist to PostgreSQL ---
             conversation = _get_or_create_conversation(request)
-            _save_messages_to_db(conversation, message, reply)
+            _save_messages_to_db(conversation, message, reply.text)
 
             return redirect(reverse("acubot_chat"))
 
@@ -90,9 +94,33 @@ def chat_ui(request):
 
 
 @api_view(['POST'])
+def quick_ask(request):
+    """Stateless one-shot endpoint required by the assignment spec
+    (POST /api/chat/). Does not persist to the database, useful for curl
+    smoke tests and external integrations."""
+    user_message = (request.data.get('message') or '').strip()
+    if not user_message:
+        return Response(
+            {"error": "Please provide a non-empty 'message' in your request."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    reply = ask(user_message)
+    return Response(
+        {
+            "answer": reply.text,
+            "language": reply.language,
+            "context_size": reply.context_size,
+            "error": reply.error,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(['POST'])
 def chat_with_acubot(request):
-    user_message = request.data.get('message')
-    conversation_history = request.data.get('history', [])
+    """Stateful chat endpoint that records the conversation to PostgreSQL."""
+    user_message = (request.data.get('message') or '').strip()
+    client_history = request.data.get('history', [])
 
     if not user_message:
         return Response(
@@ -100,12 +128,24 @@ def chat_with_acubot(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    bot_response = ask_acubot(user_message, _conversation_history=conversation_history)
+    # Prefer history sent by the client; otherwise rebuild it from the DB.
+    if client_history:
+        history_tuples = _history_for_llm(client_history)
+    else:
+        conversation = _get_or_create_conversation(request)
+        history_tuples = [
+            (m.role, m.text) for m in conversation.messages.all()
+        ]
+
+    reply = ask(user_message, history=history_tuples)
 
     # --- Persist to PostgreSQL ---
     conversation = _get_or_create_conversation(request)
-    _save_messages_to_db(conversation, user_message, bot_response)
+    _save_messages_to_db(conversation, user_message, reply.text)
 
     return Response({
-        "response": bot_response
+        "response": reply.text,
+        "language": reply.language,
+        "context_size": reply.context_size,
+        "error": reply.error,
     }, status=status.HTTP_200_OK)
