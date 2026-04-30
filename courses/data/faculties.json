@@ -1,0 +1,32 @@
+[
+    {
+        "name": "Tıp Fakültesi",
+        "name_en": "School of Medicine",
+        "description": "Acıbadem Üniversitesi'nin kurucu fakültelerinden biridir. Tıp doktoru (MD) eğitimi verir.",
+        "website": "https://www.acibadem.edu.tr/akademik/lisans/tip-fakultesi"
+    },
+    {
+        "name": "Eczacılık Fakültesi",
+        "name_en": "Faculty of Pharmacy",
+        "description": "Beş yıllık eczacılık lisans programı yürütür.",
+        "website": "https://www.acibadem.edu.tr/akademik/lisans/eczacilik-fakultesi"
+    },
+    {
+        "name": "Sağlık Bilimleri Fakültesi",
+        "name_en": "Faculty of Health Sciences",
+        "description": "Hemşirelik, fizyoterapi, beslenme ve diyetetik ile sağlık yönetimi gibi sağlık programlarını barındırır.",
+        "website": "https://www.acibadem.edu.tr/akademik/lisans/saglik-bilimleri-fakultesi"
+    },
+    {
+        "name": "İnsan ve Toplum Bilimleri Fakültesi",
+        "name_en": "Faculty of Humanities and Social Sciences",
+        "description": "Psikoloji ve sosyoloji programlarını yürütür; Türkçe ve İngilizce psikoloji seçenekleri sunulur.",
+        "website": "https://www.acibadem.edu.tr/akademik/lisans/insan-ve-toplum-bilimleri-fakultesi"
+    },
+    {
+        "name": "Mühendislik ve Doğa Bilimleri Fakültesi",
+        "name_en": "Faculty of Engineering and Natural Sciences",
+        "description": "Bilgisayar mühendisliği, biyomedikal mühendisliği ve moleküler biyoloji ve genetik programlarını sunar.",
+        "website": "https://www.acibadem.edu.tr/akademik/lisans/muhendislik-ve-doga-bilimleri-fakultesi"
+    }
+]

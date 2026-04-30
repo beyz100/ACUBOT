@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import argparse
+from pathlib import Path
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
@@ -11,134 +12,177 @@ django.setup()
 from courses.models import Faculty, Department, Course, UniversityInfo
 
 
-def _load_json(file_path):
-    if not os.path.exists(file_path):
-        print(f"  ⚠  Dosya bulunamadı: {file_path}")
+DATA_DIR = Path(__file__).resolve().parent / 'courses' / 'data'
+
+
+def _load_json(filename):
+    path = DATA_DIR / filename
+    if not path.exists():
+        print(f"  ⚠  Dosya bulunamadı: {path}")
         return None
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
-def seed_bologna_courses(flush=False):
+def seed_faculties(flush=False):
     print("\n" + "=" * 60)
-    print("📚  Bologna Ders Verilerini Yükleme")
+    print("🏛  Fakülteleri Yükleme")
     print("=" * 60)
 
     if flush:
-        deleted_count, _ = Course.objects.all().delete()
-        print(f"  🗑  Mevcut kurslar silindi: {deleted_count}")
+        deleted, _ = Faculty.objects.all().delete()
+        print(f"  🗑  Mevcut fakülteler silindi: {deleted}")
 
-    data = _load_json('bologna_data.json')
-    if data is None:
+    rows = _load_json('faculties.json')
+    if rows is None:
+        return {}
+
+    by_name = {}
+    added = 0
+    updated = 0
+    for item in rows:
+        faculty, created = Faculty.objects.update_or_create(
+            name=item['name'],
+            defaults={
+                'name_en': item.get('name_en', ''),
+                'description': item.get('description', ''),
+                'website': item.get('website', ''),
+            },
+        )
+        by_name[faculty.name] = faculty
+        if created:
+            print(f"  ✅  Eklendi: {faculty.name}")
+            added += 1
+        else:
+            updated += 1
+
+    print(f"\n  📊  Sonuç: {added} yeni, {updated} güncellendi.")
+    return by_name
+
+
+def seed_departments(faculties, flush=False):
+    print("\n" + "=" * 60)
+    print("🏫  Bölümleri Yükleme")
+    print("=" * 60)
+
+    if flush:
+        deleted, _ = Department.objects.all().delete()
+        print(f"  🗑  Mevcut bölümler silindi: {deleted}")
+
+    rows = _load_json('departments.json')
+    if rows is None:
+        return {}
+
+    by_name = {}
+    added = 0
+    updated = 0
+    skipped = 0
+    for item in rows:
+        faculty = faculties.get(item['faculty'])
+        if faculty is None:
+            print(f"  ⚠  Atlandı: '{item['name']}' — bilinmeyen fakülte '{item['faculty']}'")
+            skipped += 1
+            continue
+        dept, created = Department.objects.update_or_create(
+            faculty=faculty,
+            name=item['name'],
+            defaults={
+                'name_en': item.get('name_en', ''),
+                'description': item.get('description', ''),
+                'program_url': item.get('program_url', ''),
+            },
+        )
+        by_name[dept.name] = dept
+        if created:
+            print(f"  ✅  Eklendi: {dept.name} ({faculty.name})")
+            added += 1
+        else:
+            updated += 1
+
+    print(f"\n  📊  Sonuç: {added} yeni, {updated} güncellendi, {skipped} atlandı.")
+    return by_name
+
+
+def seed_courses(departments, flush=False):
+    print("\n" + "=" * 60)
+    print("📚  Dersleri Yükleme")
+    print("=" * 60)
+
+    if flush:
+        deleted, _ = Course.objects.all().delete()
+        print(f"  🗑  Mevcut dersler silindi: {deleted}")
+
+    rows = _load_json('courses.json')
+    if rows is None:
         return
 
-
-    DEPARTMENT_FACULTY_MAP = {
-        'Bilgisayar Mühendisliği': 'Mühendislik ve Doğa Bilimleri Fakültesi',
-        'Biyomedikal Mühendisliği': 'Mühendislik ve Doğa Bilimleri Fakültesi',
-        'Endüstri Mühendisliği': 'Mühendislik ve Doğa Bilimleri Fakültesi',
-    }
-
     added = 0
+    updated = 0
     skipped = 0
-
-    for item in data:
-        dept_name = item.get('department', 'Genel')
-        faculty_name = DEPARTMENT_FACULTY_MAP.get(dept_name, 'Genel Fakülte')
-
-        faculty, _ = Faculty.objects.get_or_create(name=faculty_name)
-        department, _ = Department.objects.get_or_create(
-            name=dept_name,
-            faculty=faculty
-        )
-
-        course, created = Course.objects.get_or_create(
+    for item in rows:
+        dept = departments.get(item['department'])
+        if dept is None:
+            skipped += 1
+            continue
+        _, created = Course.objects.update_or_create(
+            department=dept,
             code=item['code'],
             defaults={
                 'name': item['name'],
-                'ects': int(item['ects']),
-                'department': department,
-            }
+                'name_en': item.get('name_en', ''),
+                'ects': int(item.get('ects', 0)),
+                'semester': item.get('semester'),
+                'description': item.get('description', ''),
+            },
         )
-
         if created:
-            print(f"  ✅  Eklendi: {course.code} - {course.name}")
             added += 1
         else:
-            skipped += 1
+            updated += 1
 
-    print(f"\n  📊  Sonuç: {added} yeni ders eklendi, {skipped} zaten mevcuttu.")
+    print(f"\n  📊  Sonuç: {added} yeni, {updated} güncellendi, {skipped} atlandı.")
 
 
 def seed_university_info(flush=False):
-    
     print("\n" + "=" * 60)
-    print("🏫  Üniversite Genel Bilgilerini Yükleme")
+    print("🏛  Üniversite Genel Bilgilerini Yükleme")
     print("=" * 60)
 
     if flush:
-        deleted_count, _ = UniversityInfo.objects.all().delete()
-        print(f"  🗑  Mevcut üniversite bilgileri silindi: {deleted_count}")
+        deleted, _ = UniversityInfo.objects.all().delete()
+        print(f"  🗑  Mevcut üniversite bilgileri silindi: {deleted}")
 
-    data = _load_json('acibadem_data.json')
-    if data is None:
+    rows = _load_json('university_info.json')
+    if rows is None:
         return
 
     added = 0
-    skipped = 0
-
-    homepage_titles = data.get('homepage_titles', [])
-    for i, title in enumerate(homepage_titles, 1):
-        _, created = UniversityInfo.objects.get_or_create(
-            category='navigation',
-            key=f'menu_item_{i}',
-            defaults={'value': title}
+    updated = 0
+    for item in rows:
+        _, created = UniversityInfo.objects.update_or_create(
+            category=item['category'],
+            key=item['key'],
+            defaults={
+                'value': item['value'],
+                'keywords': item.get('keywords', ''),
+            },
         )
         if created:
-            print(f"  ✅  Navigasyon eklendi: {title}")
+            print(f"  ✅  Eklendi: [{item['category']}] {item['key']}")
             added += 1
         else:
-            skipped += 1
+            updated += 1
 
-    contact_info = data.get('contact_info', {})
-    for key, value in contact_info.items():
-        _, created = UniversityInfo.objects.get_or_create(
-            category='contact',
-            key=key,
-            defaults={'value': value}
-        )
-        if created:
-            print(f"  ✅  İletişim eklendi: {key} = {value}")
-            added += 1
-        else:
-            skipped += 1
-
-    faculties = data.get('faculties', [])
-    for i, fac in enumerate(faculties, 1):
-        fac_value = fac if isinstance(fac, str) else json.dumps(fac, ensure_ascii=False)
-        _, created = UniversityInfo.objects.get_or_create(
-            category='general',
-            key=f'faculty_{i}',
-            defaults={'value': fac_value}
-        )
-        if created:
-            print(f"  ✅  Fakülte eklendi: {fac_value}")
-            added += 1
-        else:
-            skipped += 1
-
-    if not faculties:
-        print("  ℹ  Fakülte verisi henüz mevcut değil (boş liste).")
-
-    print(f"\n  📊  Sonuç: {added} yeni bilgi eklendi, {skipped} zaten mevcuttu.")
-
+    print(f"\n  📊  Sonuç: {added} yeni, {updated} güncellendi.")
 
 
 def run_seeder(only_courses=False, only_university=False, flush=False):
     print("\n🚀  ACU ChatBot — Data Pipeline başlatılıyor...")
 
     if not only_university:
-        seed_bologna_courses(flush=flush)
+        faculties = seed_faculties(flush=flush)
+        departments = seed_departments(faculties, flush=flush)
+        seed_courses(departments, flush=flush)
 
     if not only_courses:
         seed_university_info(flush=flush)
@@ -148,14 +192,13 @@ def run_seeder(only_courses=False, only_university=False, flush=False):
     print("=" * 60 + "\n")
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='ACU ChatBot — Veritabanı seed scripti'
     )
     parser.add_argument(
         '--only-courses', action='store_true',
-        help='Sadece Bologna ders verilerini yükle'
+        help='Sadece fakülte/bölüm/ders verilerini yükle'
     )
     parser.add_argument(
         '--only-university', action='store_true',

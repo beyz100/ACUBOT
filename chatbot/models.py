@@ -1,33 +1,42 @@
 from django.db import models
-from django.contrib.auth.models import User
 
 
 class Conversation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='conversations')
-    title = models.CharField(max_length=255, blank=True)
+    """A single chat session, identified by Django session key."""
+    session_key = models.CharField(max_length=255, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-updated_at']
+        verbose_name = "Sohbet"
+        verbose_name_plural = "Sohbetler"
 
     def __str__(self):
-        return f"{self.user.username} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        return f"Sohbet #{self.pk} ({self.session_key[:12]}…)"
 
 
-class Message(models.Model):
+class ChatMessage(models.Model):
+    """A single message (user or assistant) within a conversation."""
     ROLE_CHOICES = [
         ('user', 'Kullanıcı'),
-        ('assistant', 'Asistan'),
+        ('assistant', 'ACUBOT'),
     ]
 
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name='messages',
+    )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
-    content = models.TextField()
+    text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['created_at']
+        verbose_name = "Sohbet Mesajı"
+        verbose_name_plural = "Sohbet Mesajları"
 
     def __str__(self):
-        return f"{self.conversation.user.username} - {self.role}: {self.content[:50]}..."
+        preview = self.text[:80] + "…" if len(self.text) > 80 else self.text
+        return f"[{self.get_role_display()}] {preview}"

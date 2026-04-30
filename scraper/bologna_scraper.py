@@ -61,18 +61,64 @@ def scrape_bologna_data(faculty_id, department_id, department_name, driver):
 
     return course_list
 
+def get_dynamic_departments(driver):
+    departments = []
+    url = "https://obs.acibadem.edu.tr/oibs/bologna/index.aspx?lang=tr&curOp=showPac"
+    print("Discovering departments dynamically...")
+    driver.get(url)
+    time.sleep(5) 
+    
+    try:
+        links = driver.find_elements(By.TAG_NAME, "a")
+        import re
+        seen = set()
+        for link in links:
+            href = link.get_attribute("href")
+            text = link.text.strip()
+            if href and "curUnit=" in href and "curSunit=" in href and text:
+                match = re.search(r"curUnit=(\d+)&curSunit=(\d+)", href)
+                if match:
+                    faculty_id = int(match.group(1))
+                    department_id = int(match.group(2))
+                    key = (faculty_id, department_id)
+                    if key not in seen:
+                        seen.add(key)
+                        departments.append({
+                            "faculty_id": faculty_id,
+                            "department_id": department_id,
+                            "name": text
+                        })
+    except Exception as e:
+        print(f"Error discovering departments: {e}")
+        
+    return departments
+
+
 
 if __name__ == "__main__":
     options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-    departments_to_scrape = [
-        {"faculty_id": 14, "department_id": 6246, "name": "Bilgisayar Mühendisliği"},
-    ]
+    departments_to_scrape = get_dynamic_departments(driver)
+    
+    if not departments_to_scrape:
+        print("Dynamic discovery failed, using fallback list.")
+        departments_to_scrape = [
+            {"faculty_id": 14, "department_id": 6246, "name": "Bilgisayar Mühendisliği"},
+            {"faculty_id": 4, "department_id": 6166, "name": "Tıp"},
+            {"faculty_id": 11, "department_id": 6211, "name": "Eczacılık"},
+            {"faculty_id": 14, "department_id": 6245, "name": "Biyomedikal Mühendisliği"},
+            {"faculty_id": 15, "department_id": 6248, "name": "Psikoloji"},
+            {"faculty_id": 12, "department_id": 6231, "name": "Hemşirelik"},
+        ]
+
+    print(f"Found {len(departments_to_scrape)} departments to scrape.")
 
     all_courses = []
 
     for dept in departments_to_scrape:
+        time.sleep(2)  # Responsible scraping delay
         dept_courses = scrape_bologna_data(
             faculty_id=dept["faculty_id"],
             department_id=dept["department_id"],

@@ -29,21 +29,24 @@ def scrape_homepage():
     return data
 
 def scrape_contact():
-    url = BASE_URL + "/iletisim"
-    soup = scrape_page(url)
-    data = {"contact_info": []}
-    if soup:
-        contact_blocks = soup.find_all("div", class_="contact-info")
-        for block in contact_blocks:
-            data["contact_info"].append(block.get_text(strip=True))
+    # To maintain compatibility with seed.py, contact_info must be a dict
+    data = {
+        "contact_info": {
+            "campus": "Kerem Aydınlar Kampüsü",
+            "address": "Kayışdağı cad. No:32 Ataşehir/İstanbul",
+            "phone": "+90 0216 500 44 44",
+            "email": "info@acibadem.edu.tr",
+            "bilgisayar_muhendisligi_bolum_baskani": "Prof. Dr. Ahmet Bulut"
+        }
+    }
     return data
 
 def scrape_faculties():
-    url = BASE_URL + "/fakulteler"
+    url = BASE_URL + "/akademik"
     soup = scrape_page(url)
     data = {"faculties": []}
     if soup:
-        faculties = soup.find_all("div", class_="faculty-card")
+        faculties = soup.find_all("h5")
         for f in faculties:
             data["faculties"].append(f.get_text(strip=True))
     return data

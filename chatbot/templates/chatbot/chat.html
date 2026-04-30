@@ -56,10 +56,11 @@
     .messages-container {
       flex: 1;
       overflow-y: auto;
-      padding: 1.5rem 1rem 4rem;
+      padding: 1.5rem 1rem 1.5rem;
       max-width: 800px;
       margin: 0 auto;
       width: 100%;
+      min-height: 0;
       overscroll-behavior-y: contain;
     }
     .empty-state {
@@ -91,12 +92,8 @@
       background: var(--bot-bg);
     }
     .composer {
-      position: fixed;
-      bottom: 0;
-      right: 0;
-      left: 0;
       padding: 1rem;
-      background: linear-gradient(to top, var(--bg) 70%, transparent);
+      background: var(--bg);
       border-top: 1px solid var(--border);
     }
     form.compose {
@@ -146,12 +143,19 @@
       cursor: not-allowed;
     }
     .error {
-      background: #3d1f24;
-      border: 1px solid #6b2d36;
-      color: #f5c6cb;
-      padding: 0.65rem 0.85rem;
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 15px;
       border-radius: 8px;
       font-size: 0.9rem;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+    }
+    .error::before {
+        content: "⚠️ ";
+        margin-right: 5px;
     }
     .loading {
       color: var(--muted);
@@ -191,15 +195,85 @@
     </div>
   </div>
   <script>
-    let currentConversationId=null;
-    const apiBaseUrl='/api/chat';
+    let chatHistory = [];
+    const apiBaseUrl = '/api/chat';
+
     function getCookie(n){let v=null;if(document.cookie&&document.cookie!==''){document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'=')){v=decodeURIComponent(c.substring(n.length+1));}});}return v;}
-    const csrfToken=document.querySelector('[name=csrfmiddlewaretoken]')?.value||getCookie('csrftoken');
-    async function fetchWithAuth(u,o={}){const h={'Content-Type':'application/json',...(o.headers||{})};if(csrfToken&&o.method&&o.method!=='GET'){h['X-CSRFToken']=csrfToken;}const r=await fetch(u,{...o,headers:h});if(r.status===401||r.status===403){window.location.href='/admin/login/?next=/chat/';}return r;}
-    async function createNewConversation(){const r=await fetchWithAuth(`${apiBaseUrl}/conversations/`,{method:'POST',body:JSON.stringify({title:`Chat Session`})});if(!r||!r.ok)return;const v=await r.json();currentConversationId=v.id;}
-    async function sendMessage(e){e.preventDefault();const c=document.getElementById('messagesContainer');const b=e.target.querySelector('button[type="submit"]');if(!currentConversationId){await createNewConversation();if(!currentConversationId){const ed=document.createElement('div');ed.className='error';ed.textContent='Could not start chat. Please make sure you are logged in.';c.appendChild(ed);b.disabled=false;return;}}const t=document.getElementById('message');const m=t.value.trim();if(!m)return;t.value='';b.disabled=true;if(c.innerHTML.includes('empty-state')){c.innerHTML='';}const u=document.createElement('div');u.className='message user';const ub=document.createElement('div');ub.className='bubble user';ub.textContent=m;u.appendChild(ub);c.appendChild(u);c.scrollTop=c.scrollHeight;const l=document.createElement('div');l.className='message';l.innerHTML='<p class="loading">ACUBOT is thinking...</p>';c.appendChild(l);c.scrollTop=c.scrollHeight;try{const r=await fetchWithAuth(`${apiBaseUrl}/conversations/${currentConversationId}/send/`,{method:'POST',body:JSON.stringify({message:m})});if(!r||!r.ok){l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Message could not be sent.';c.appendChild(ed);b.disabled=false;return;}const mList=await r.json();const lastMsg=mList[mList.length-1];l.className='message assistant';l.innerHTML='';const lb=document.createElement('div');lb.className='bubble assistant';lb.textContent=lastMsg.content;l.appendChild(lb);c.scrollTop=c.scrollHeight;}catch(er){console.error('Error:',er);l.remove();const ed=document.createElement('div');ed.className='error';ed.textContent='Error: '+er.message;c.appendChild(ed);}b.disabled=false;}
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+
+    async function sendMessage(e){
+      e.preventDefault();
+      const c = document.getElementById('messagesContainer');
+      const b = e.target.querySelector('button[type="submit"]');
+      const t = document.getElementById('message');
+      const m = t.value.trim();
+      
+      if(!m) return;
+      t.value = '';
+      b.disabled = true;
+      if(c.innerHTML.includes('empty-state')){c.innerHTML='';}
+      
+      const u = document.createElement('div');
+      u.className = 'message user';
+      const ub = document.createElement('div');
+      ub.className = 'bubble user';
+      ub.textContent = m;
+      u.appendChild(ub);
+      c.appendChild(u);
+      c.scrollTop = c.scrollHeight;
+      
+      const l = document.createElement('div');
+      l.className = 'message';
+      l.innerHTML = '<p class="loading">ACUBOT is thinking...</p>';
+      c.appendChild(l);
+      c.scrollTop = c.scrollHeight;
+
+      try{
+        const h = {'Content-Type':'application/json'};
+        if(csrfToken) h['X-CSRFToken'] = csrfToken;
+        
+        const payload = { message: m, history: chatHistory };
+        
+        const r = await fetch(`${apiBaseUrl}/ask/`, {
+          method: 'POST',
+          headers: h,
+          body: JSON.stringify(payload)
+        });
+
+        if(!r||!r.ok){
+          throw new Error('Network response was not ok');
+        }
+        
+        const data = await r.json();
+        const botResponse = data.response;
+        
+        l.className = 'message assistant';
+        l.innerHTML = '';
+        const lb = document.createElement('div');
+        lb.className = 'bubble assistant';
+        lb.textContent = botResponse;
+        l.appendChild(lb);
+        c.scrollTop = c.scrollHeight;
+        
+        chatHistory.push({ role: 'user', text: m });
+        chatHistory.push({ role: 'assistant', text: botResponse });
+        
+        if (chatHistory.length > 50) {
+            chatHistory = chatHistory.slice(-50);
+        }
+
+      }catch(er){
+        console.error('Error:',er);
+        l.remove();
+        const ed=document.createElement('div');
+        ed.className='error';
+        ed.textContent='Error: '+er.message;
+        c.appendChild(ed);
+      }
+      b.disabled=false;
+    }
+    
     document.addEventListener('DOMContentLoaded',()=>{
-      createNewConversation();
       const textarea = document.getElementById('message');
       textarea.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
