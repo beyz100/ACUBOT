@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -30,7 +31,8 @@ KESİN KURALLAR:
 4. Kullanıcı bir bölümün ya da fakültenin TÜM derslerini istediğinde, bilgi tabanındaki tüm dersleri TAM olarak listele; özet geçme, atlama yapma.
 5. Ders kodlarını, ECTS değerlerini ve isimleri bilgi tabanındaki haliyle aynen kullan.
 6. Yanıtların kısa, net ve madde işaretli olsun. Gereksiz girişlere ya da kapanışlara yer verme.
-7. Yorum, tahmin veya "bu ders şunu sağlar" gibi açıklama EKLEME. Sadece bilgi tabanındaki olguları aktar.""",
+7. Yorum, tahmin veya "bu ders şunu sağlar" gibi açıklama EKLEME. Sadece bilgi tabanındaki olguları aktar.
+8. Yanıtının başına ASLA "User:", "Assistant:", "Kullanıcı:", "Asistan:", "Bilgi Tabanı:" gibi etiketler koyma. Doğrudan cevapla.""",
     "en": """You are "ACUBOT", an assistant that answers questions for Acıbadem University students and visitors.
 
 STRICT RULES:
@@ -40,8 +42,85 @@ STRICT RULES:
 4. When asked for ALL courses of a department or faculty, list every entry from the knowledge base verbatim — do not summarise or skip rows.
 5. Preserve course codes, ECTS values, and original Turkish names exactly as shown in the knowledge base.
 6. Keep replies concise, clear, and use bullet points when listing items. Skip filler intros and outros.
-7. Do NOT add commentary, interpretations, or filler like "this course covers ..." — relay only the facts present in the knowledge base.""",
+7. Do NOT add commentary, interpretations, or filler like "this course covers ..." — relay only the facts present in the knowledge base.
+8. NEVER prefix your reply with labels like "User:", "Assistant:", or "Knowledge Base:". Reply directly.""",
 }
+
+
+# Prefixes the model occasionally echoes back from the chat scaffolding.
+# Stripped before the answer is shown to the user.
+_LABEL_RE = re.compile(
+    r"^\s*(?:user|assistant|kullanıcı|kullanici|asistan|bilgi\s*tabanı|knowledge\s*base)\s*[:：]\s*",
+    re.IGNORECASE,
+)
+
+
+_USER_LABEL_TOKENS = {"user", "kullanıcı", "kullanici"}
+
+
+def _label_word(line: str) -> str | None:
+    match = _LABEL_RE.match(line)
+    if not match:
+        return None
+    return match.group(0).strip().rstrip(":：").strip().lower()
+
+
+def _has_following_assistant_label(lines: list[str], user_idx: int) -> bool:
+    for j in range(user_idx + 1, len(lines)):
+        if not lines[j].strip():
+            continue
+        word = _label_word(lines[j])
+        if word is None:
+            return False
+        if word not in _USER_LABEL_TOKENS:
+            return True
+    return False
+
+
+def _scrub_labels(text: str) -> str:
+    """Strip prompt-scaffolding leakage from the model's reply.
+
+    Smaller models leak labels in two distinct ways:
+
+      1. **Conversation echo** — the model parrots the entire turn:
+         ``User: <prior question>\\nAssistant: <answer>``.
+         In this case the User line is the user's question and must be
+         dropped entirely.
+      2. **Mislabeling** — the model just prefixes its own answer with the
+         wrong tag, e.g. ``User: +90 216 ...``.
+         In this case we must NOT drop the line; only the bogus prefix.
+
+    We disambiguate per user-labelled line: if a non-user label appears on a
+    later line, treat it as case (1) and drop the user line; otherwise treat
+    it as case (2) and keep the content after the label.
+    """
+    lines = text.splitlines()
+    out: list[str] = []
+    for i, raw_line in enumerate(lines):
+        line = raw_line
+        drop_line = False
+        while True:
+            match = _LABEL_RE.match(line)
+            if not match:
+                break
+            label_word = (
+                match.group(0).strip().rstrip(":：").strip().lower()
+            )
+            rest = line[match.end():]
+            if label_word in _USER_LABEL_TOKENS:
+                if _has_following_assistant_label(lines, i):
+                    drop_line = True
+                    break
+                # Mislabeling: peel off the prefix, keep the answer.
+                line = rest
+                continue
+            # Assistant / knowledge-base header — strip and keep going.
+            line = rest
+        if drop_line:
+            continue
+        if line.strip():
+            out.append(line)
+    return "\n".join(out).strip()
 
 
 @dataclass
@@ -52,46 +131,57 @@ class LLMReply:
     error: bool = False
 
 
-def _build_prompt(
+def _build_messages(
     user_message: str,
     context_text: str,
     history: list[tuple[str, str]],
     language: str,
-) -> str:
-    system_prompt = SYSTEM_PROMPTS[language]
-    parts = [system_prompt, "", "Knowledge Base:", context_text]
-    if history:
-        parts.append("")
-        parts.append("Conversation so far:")
-        for role, content in history:
-            label = "User" if role == "user" else "Assistant"
-            parts.append(f"{label}: {content}")
-    parts.append("")
-    parts.append(f"User: {user_message}")
-    parts.append("Assistant:")
-    return "\n".join(parts)
+) -> list[dict]:
+    """Build the structured message list expected by Ollama's /api/chat
+    endpoint. Using role-based messages lets the model rely on its own chat
+    template — so it never echoes labels like "User:" or "Assistant:" back
+    to the user."""
+    if language == "tr":
+        kb_header = "Bilgi Tabanı:"
+    else:
+        kb_header = "Knowledge Base:"
+
+    system_content = (
+        f"{SYSTEM_PROMPTS[language]}\n\n{kb_header}\n{context_text}"
+    )
+    messages: list[dict] = [{"role": "system", "content": system_content}]
+    for role, content in history:
+        if role not in {"user", "assistant"}:
+            continue
+        messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": user_message})
+    return messages
 
 
-def _call_ollama(prompt: str) -> tuple[str | None, str | None]:
+def _ollama_options() -> dict:
+    return {
+        "temperature": 0.0,
+        "top_p": 0.9,
+        # Context window kept small (4096) so 3B-class models stay snappy
+        # on CPU-only machines. Bump to 8192 if you switch to a larger
+        # model on a workstation with a GPU.
+        "num_ctx": 4096,
+        # Up to ~50 course rows can need >1.5k tokens to render.
+        "num_predict": 2048,
+    }
+
+
+def _call_ollama(messages: list[dict]) -> tuple[str | None, str | None]:
     """Return (text, error). Exactly one of them is None."""
-    url = f"{settings.OLLAMA_URL.rstrip('/')}/api/generate"
+    url = f"{settings.OLLAMA_URL.rstrip('/')}/api/chat"
     payload = {
         "model": settings.OLLAMA_MODEL,
-        "prompt": prompt,
+        "messages": messages,
         "stream": False,
         # Keep the model in RAM between requests; without this Ollama unloads
         # after 5 min of inactivity and the next call eats a 10–30 s reload.
         "keep_alive": settings.OLLAMA_KEEP_ALIVE,
-        "options": {
-            "temperature": 0.0,
-            "top_p": 0.9,
-            # Context window kept small (4096) so 3B-class models stay snappy
-            # on CPU-only machines. Bump to 8192 if you switch to a larger
-            # model on a workstation with a GPU.
-            "num_ctx": 4096,
-            # Up to ~50 course rows can need >1.5k tokens to render.
-            "num_predict": 2048,
-        },
+        "options": _ollama_options(),
     }
     try:
         response = requests.post(
@@ -115,7 +205,8 @@ def _call_ollama(prompt: str) -> tuple[str | None, str | None]:
         data = response.json()
     except ValueError:
         return None, "decode"
-    text = (data.get("response") or "").strip()
+    text = (data.get("message", {}).get("content") or "").strip()
+    text = _scrub_labels(text)
     if not text:
         return None, "empty"
     return text, None
@@ -168,10 +259,10 @@ def ask(
     if history:
         trimmed_history = list(history)[-HISTORY_TURNS * 2 :]
 
-    prompt = _build_prompt(user_message, context_text, trimmed_history, language)
-    logger.debug("LLM prompt (%d chars):\n%s", len(prompt), prompt)
+    messages = _build_messages(user_message, context_text, trimmed_history, language)
+    logger.debug("LLM messages (%d):\n%s", len(messages), messages)
 
-    text, error = _call_ollama(prompt)
+    text, error = _call_ollama(messages)
     if error is not None:
         return LLMReply(
             text=_friendly_error(error, language),
@@ -206,24 +297,21 @@ def ask_stream(
     if history:
         trimmed_history = list(history)[-HISTORY_TURNS * 2 :]
 
-    prompt = _build_prompt(user_message, context_text, trimmed_history, language)
+    messages = _build_messages(user_message, context_text, trimmed_history, language)
 
-    url = f"{settings.OLLAMA_URL.rstrip('/')}/api/generate"
+    url = f"{settings.OLLAMA_URL.rstrip('/')}/api/chat"
     payload = {
         "model": settings.OLLAMA_MODEL,
-        "prompt": prompt,
+        "messages": messages,
         "stream": True,
         "keep_alive": settings.OLLAMA_KEEP_ALIVE,
-        "options": {
-            "temperature": 0.0,
-            "top_p": 0.9,
-            "num_ctx": 4096,
-            "num_predict": 2048,
-        },
+        "options": _ollama_options(),
     }
 
     chunks: list[str] = []
     error_code: str | None = None
+    label_scrubbed = False  # only scrub the very first user-visible chunk
+
     try:
         with requests.post(
             url,
@@ -241,10 +329,28 @@ def ask_stream(
                         obj = json.loads(line)
                     except ValueError:
                         continue
-                    piece = obj.get("response", "")
+                    piece = obj.get("message", {}).get("content", "")
                     if piece:
                         chunks.append(piece)
-                        yield {"type": "chunk", "text": piece}
+                        # Scrub leading labels on the first non-empty emit.
+                        if not label_scrubbed:
+                            joined = "".join(chunks)
+                            cleaned = _scrub_labels(joined)
+                            if cleaned != joined:
+                                # Re-seed chunks with the scrubbed text so
+                                # subsequent emissions don't re-introduce it.
+                                chunks = [cleaned]
+                                if cleaned:
+                                    yield {"type": "chunk", "text": cleaned}
+                                    label_scrubbed = True
+                                continue
+                            # Wait for more text before deciding.
+                            if any(ch.isalpha() for ch in joined) and len(joined) >= 8:
+                                label_scrubbed = True
+                                yield {"type": "chunk", "text": piece}
+                            # else: still buffering, do not yield yet
+                        else:
+                            yield {"type": "chunk", "text": piece}
                     if obj.get("done"):
                         break
     except requests.exceptions.ConnectionError:
@@ -255,7 +361,7 @@ def ask_stream(
         logger.exception("Ollama stream failed: %s", exc)
         error_code = "request"
 
-    full_text = "".join(chunks).strip()
+    full_text = _scrub_labels("".join(chunks).strip())
     if error_code is not None and not full_text:
         yield {
             "type": "done",
