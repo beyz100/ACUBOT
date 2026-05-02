@@ -122,7 +122,8 @@ def chat_with_acubot(request):
     """Stateful chat endpoint that records the conversation to PostgreSQL."""
     user_message = (request.data.get('message') or '').strip()
     client_history = request.data.get('history', [])
-    new_conversation = request.data.get('new_conversation', False)
+    new_conversation_raw = request.data.get('new_conversation', False)
+    new_conversation = str(new_conversation_raw).lower() == 'true' or new_conversation_raw is True
 
     if not user_message:
         return Response(
@@ -131,14 +132,19 @@ def chat_with_acubot(request):
         )
 
     if new_conversation:
-        request.session.pop(CONVERSATION_ID_SESSION_KEY, None)
+        if CONVERSATION_ID_SESSION_KEY in request.session:
+            del request.session[CONVERSATION_ID_SESSION_KEY]
         request.session.modified = True
 
     # Prefer history sent by the client; otherwise rebuild it from the DB.
+    # We MUST call _get_or_create_conversation synchronously before returning the
+    # StreamingHttpResponse so that Django's SessionMiddleware sees the session
+    # as modified and saves it (sending the Set-Cookie header).
+    conversation = _get_or_create_conversation(request)
+
     if client_history:
         history_tuples = _history_for_llm(client_history)
     else:
-        conversation = _get_or_create_conversation(request)
         history_tuples = [
             (m.role, m.text) for m in conversation.messages.all()
         ]
@@ -149,13 +155,12 @@ def chat_with_acubot(request):
 
     def generate():
         full_text = ""
-        conv = _get_or_create_conversation(request)
         for chunk in ask_stream(user_message, history=history_tuples):
             if chunk["type"] == "chunk":
                 full_text += chunk["text"]
                 yield json.dumps({"type": "chunk", "text": chunk["text"]}) + "\n"
             elif chunk["type"] == "done":
-                _save_messages_to_db(conv, user_message, chunk["text"])
+                _save_messages_to_db(conversation, user_message, chunk["text"])
                 yield json.dumps({
                     "type": "done",
                     "text": chunk["text"],

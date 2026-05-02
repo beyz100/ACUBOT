@@ -195,6 +195,19 @@ def seed_scraper_data():
         )
         print("  ✅  Scraper'dan Bilgisayar Müh. Bölüm Başkanı güncellendi.")
 
+    if "bilgisayar_muhendisligi_akademik_kadro" in contact_info:
+        staff_list = contact_info["bilgisayar_muhendisligi_akademik_kadro"]
+        staff_str = ", ".join(staff_list)
+        UniversityInfo.objects.update_or_create(
+            category="academic",
+            key="computer_engineering_staff",
+            defaults={
+                "value": f"Bilgisayar Mühendisliği Akademik Kadrosu: {staff_str}",
+                "keywords": "bilgisayar mühendisliği akademik kadro, akademik personeli, hocaları, hocalar, academic staff, professors, faculty members, bilgisayar müh akademik kadro",
+            }
+        )
+        print("  ✅  Scraper'dan Bilgisayar Müh. Akademik Kadrosu güncellendi.")
+
 
 def run_seeder(only_courses=False, only_university=False, flush=False):
     print("\n🚀  ACU ChatBot — Data Pipeline başlatılıyor...")

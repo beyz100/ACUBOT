@@ -319,7 +319,7 @@
 
     async function loadConversations() {
       try {
-        const r = await fetch(`${apiBaseUrl}/conversations/`);
+        const r = await fetch(`${apiBaseUrl}/conversations/`, { credentials: 'same-origin' });
         if (!r || !r.ok) throw new Error('Failed to load conversations');
 
         const conversations = await r.json();
@@ -343,7 +343,7 @@
 
     async function loadConversation(conversationId) {
       try {
-        const r = await fetch(`${apiBaseUrl}/conversations/${conversationId}/`);
+        const r = await fetch(`${apiBaseUrl}/conversations/${conversationId}/`, { credentials: 'same-origin' });
         if (!r || !r.ok) throw new Error('Failed to load conversation');
 
         const conversation = await r.json();
@@ -425,7 +425,8 @@
         const r = await fetch(`${apiBaseUrl}/ask/`, {
           method: 'POST',
           headers: h,
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          credentials: 'same-origin'
         });
 
         if(!r||!r.ok){
