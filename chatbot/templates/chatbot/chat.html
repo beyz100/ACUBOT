@@ -371,8 +371,11 @@
 
         document.querySelectorAll('.conversation-item').forEach(item => {
           item.classList.remove('active');
+          const handler = item.getAttribute('onclick') || '';
+          if (handler.includes('loadConversation(' + conversationId + ')')) {
+            item.classList.add('active');
+          }
         });
-        document.querySelector(`.conversation-item:has(~ [onclick*="${conversationId}"])`)?.classList.add('active');
 
         loadConversations();
       } catch (err) {
@@ -443,27 +446,50 @@
         const reader = r.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let botResponse = '';
+        // NDJSON arrives in arbitrary network chunks — a single read() may
+        // contain part of one JSON object, several whole ones, or end mid-
+        // line. Buffer everything and only parse complete newline-delimited
+        // pieces so chunk-boundary splits do not corrupt the stream.
+        let buffer = '';
 
         while(true) {
             const {value, done} = await reader.read();
-            if(done) break;
-            const chunkText = decoder.decode(value, {stream: true});
-            const lines = chunkText.split('\n');
-            for(let line of lines) {
-                if(line.trim() === '') continue;
+            if(done) {
+                // Flush whatever is left in the buffer (final line without \n).
+                if (buffer.trim()) {
+                    try {
+                        const parsed = JSON.parse(buffer);
+                        if (parsed.type === "chunk") {
+                            botResponse += parsed.text;
+                        } else if (parsed.type === "done") {
+                            botResponse = parsed.text;
+                        }
+                        lb.textContent = botResponse;
+                    } catch(e) {
+                        console.warn("Tail parse skipped:", e, buffer);
+                    }
+                }
+                break;
+            }
+            buffer += decoder.decode(value, {stream: true});
+            let nl;
+            while ((nl = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, nl);
+                buffer = buffer.slice(nl + 1);
+                if (line.trim() === '') continue;
                 try {
                     const parsed = JSON.parse(line);
-                    if(parsed.type === "chunk") {
+                    if (parsed.type === "chunk") {
                         botResponse += parsed.text;
                         lb.textContent = botResponse;
                         c.scrollTop = c.scrollHeight;
-                    } else if(parsed.type === "done") {
+                    } else if (parsed.type === "done") {
                         botResponse = parsed.text;
                         lb.textContent = botResponse;
                         c.scrollTop = c.scrollHeight;
                     }
                 } catch(e) {
-                    console.error("Parse error:", e, line);
+                    console.warn("Parse skipped:", e, line);
                 }
             }
         }
