@@ -224,6 +224,32 @@ _FALL_WORDS = {"güz", "guz", "fall"}
 _SPRING_WORDS = {"bahar", "spring"}
 _FIRST_YEAR_WORDS = {"birinci sınıf", "1. sınıf", "first year", "1st year"}
 
+# Words that, on their own, do NOT indicate the user is asking for a specific
+# topic — they are filler around the real intent ("hangi dersler var",
+# "bölümündeki tüm dersleri", "courses are there", ...). When the residual
+# query (after stripping the matched department/faculty name) contains only
+# these tokens, the search treats it as "list everything in this scope"
+# instead of running a topical filter that would return zero rows.
+_TOPIC_FILLER_WORDS: set[str] = {
+    # course/department vocab
+    "ders", "dersi", "dersler", "dersleri",
+    "course", "courses", "class", "classes",
+    "bölüm", "bölümü", "bölümünde", "bölümündeki", "bölümleri",
+    "department", "departments",
+    "fakülte", "fakültesi", "fakültesinde", "fakülteleri",
+    "faculty", "faculties",
+    "müfredat", "müfredatı", "curriculum", "katalog", "kataloğu",
+    "program", "programı", "programları",
+    # quantifiers / scope words
+    "tüm", "bütün", "hepsi", "all", "every", "any",
+    "list", "show", "give", "tell",
+    # generic interrogatives
+    "neler", "ne", "nedir", "hangi", "kaç", "what", "which", "are", "is", "there",
+    # filler / connectives
+    "var", "mı", "mi", "mu", "mü", "ile", "için",
+    "the", "a", "an", "of", "in", "at", "on", "to",
+}
+
 
 def _detect_semesters(query: str) -> set[int] | None:
     """Return the set of semester numbers the user is asking about, or None
@@ -277,9 +303,13 @@ def _retrieve_courses(
 
     expanded = expand_query(query)
     residual = _residual_query(query, department, faculty)
-    has_topical = len(residual) >= 3 and not residual.lower() in {
-        "ders", "dersler", "dersleri", "courses", "course",
-    }
+    # Detect whether the residual is just filler ("bölümündeki dersler", "tüm
+    # dersleri neler", ...) — in which case the user is really asking for the
+    # whole catalogue and we should not run a topical filter that would
+    # silently return zero rows.
+    residual_tokens = set(re.findall(r"\w+", residual.lower()))
+    non_filler = residual_tokens - _TOPIC_FILLER_WORDS
+    has_topical = bool(non_filler)
 
     # If the user is asking *exclusively* about a department's catalogue and
     # gave no topical hint, return the entire catalogue ordered by code.
@@ -293,6 +323,11 @@ def _retrieve_courses(
     trigram = _course_trigram(residual or query, base, limit * 2)
     merged = _merge_courses(full_text, trigram, limit)
 
+    # Department/faculty was matched but the topical filter found nothing —
+    # fall back to the whole department catalogue so the LLM still has data
+    # to ground its answer in (instead of hallucinating from an empty list).
+    if not merged and (department is not None or faculty is not None):
+        return list(base.order_by("semester", "code")[:limit])
     return merged
 
 
