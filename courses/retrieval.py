@@ -35,25 +35,23 @@ logger = logging.getLogger(__name__)
 # fallback for cases where trigram similarity is too weak (e.g. "telefon"
 # vs. key="phone").
 INTENT_TO_INFO_CATEGORY: dict[str, str] = {
-    # contact
     "telefon": "contact", "tel": "contact", "phone": "contact", "telephone": "contact",
     "eposta": "contact", "e-posta": "contact", "email": "contact", "mail": "contact",
     "adres": "contact", "address": "contact", "location": "contact", "konum": "contact",
     "iletişim": "contact", "contact": "contact",
-    # admission
     "kayıt": "admission", "başvuru": "admission", "kabul": "admission",
     "admission": "admission", "apply": "admission", "register": "admission",
     "kontenjan": "admission", "puan": "admission",
-    # campus
     "kampüs": "campus", "campus": "campus", "kütüphane": "campus", "library": "campus",
     "yurt": "campus", "dormitory": "campus", "ulaşım": "campus", "transportation": "campus",
-    "yemekhane": "campus", "cafeteria": "campus",
-    # academic / general
+    "yemekhane": "campus", "cafeteria": "campus", "gidilir": "campus", "nasıl": "campus",
+    "neresi": "campus", "yön": "campus", "directions": "campus",
     "rektör": "academic", "rector": "academic",
     "kurucu": "academic", "founder": "academic",
     "tarihçe": "academic", "history": "academic",
     "burs": "academic", "scholarship": "academic",
     "ücret": "academic", "tuition": "academic", "fee": "academic", "harç": "academic",
+    "başkanı": "academic", "başkan": "academic", "head": "academic", "department head": "academic",
 }
 
 
@@ -295,10 +293,6 @@ def _retrieve_courses(
     trigram = _course_trigram(residual or query, base, limit * 2)
     merged = _merge_courses(full_text, trigram, limit)
 
-    # If the search yielded nothing but we are inside a department, fall back
-    # to the catalogue so the LLM still has context to work with.
-    if not merged and (department is not None or faculty is not None):
-        return list(base.order_by("code")[:limit])
     return merged
 
 
@@ -320,11 +314,13 @@ def _retrieve_university_info(query: str, limit: int) -> list[UniversityInfo]:
         intent_words = {
             word for word in INTENT_TO_INFO_CATEGORY if word in lower
         }
+        query_tokens = set(expanded.lower().split())
         scored: list[tuple[int, UniversityInfo]] = []
         for info in UniversityInfo.objects.filter(category__in=intent_categories):
             haystack = (info.key + " " + info.keywords).lower()
-            score = sum(1 for w in intent_words if w in haystack)
-            scored.append((score, info))
+            intent_score = sum(1 for w in intent_words if w in haystack)
+            overlap_score = sum(1 for w in query_tokens if w in haystack)
+            scored.append((intent_score * 10 + overlap_score, info))
         scored.sort(key=lambda t: (-t[0], t[1].key))
         intent_matches = [info for _, info in scored]
 

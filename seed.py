@@ -176,6 +176,26 @@ def seed_university_info(flush=False):
     print(f"\n  📊  Sonuç: {added} yeni, {updated} güncellendi.")
 
 
+def seed_scraper_data():
+    scraper_path = Path(__file__).resolve().parent / 'acibadem_data.json'
+    if not scraper_path.exists():
+        return
+    with open(scraper_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    contact_info = data.get("contact_info", {})
+    if "bilgisayar_muhendisligi_bolum_baskani" in contact_info:
+        UniversityInfo.objects.update_or_create(
+            category="academic",
+            key="computer_engineering_head",
+            defaults={
+                "value": f"Bilgisayar Mühendisliği Bölüm Başkanı: {contact_info['bilgisayar_muhendisligi_bolum_baskani']}",
+                "keywords": "bilgisayar mühendisliği başkanı, computer engineering head, department head",
+            }
+        )
+        print("  ✅  Scraper'dan Bilgisayar Müh. Bölüm Başkanı güncellendi.")
+
+
 def run_seeder(only_courses=False, only_university=False, flush=False):
     print("\n🚀  ACU ChatBot — Data Pipeline başlatılıyor...")
 
@@ -186,6 +206,7 @@ def run_seeder(only_courses=False, only_university=False, flush=False):
 
     if not only_courses:
         seed_university_info(flush=flush)
+        seed_scraper_data()
 
     print("\n" + "=" * 60)
     print("✨  Data Pipeline tamamlandı!")

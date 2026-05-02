@@ -29,7 +29,6 @@ def scrape_homepage():
     return data
 
 def scrape_contact():
-    # To maintain compatibility with seed.py, contact_info must be a dict
     data = {
         "contact_info": {
             "campus": "Kerem Aydınlar Kampüsü",
