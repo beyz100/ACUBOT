@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 
 # ── Ollama config (same as services.py) ──────────────────────────────────────
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
-MODEL_NAME     = "qwen2.5:3b"
+MODEL_NAME     = "llama3.2:3b"
 
 SYSTEM_PROMPT = """You are an ACUBOT assistant for Acıbadem University. 
 - ALWAYS answer in the student's language.

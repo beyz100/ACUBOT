@@ -1,0 +1,29 @@
+# Force LF line endings on text files regardless of the contributor's OS
+# default (Windows ships with core.autocrlf=true). Without this, shell
+# scripts checked out on Windows get CRLF endings and break inside the
+# Docker container with the misleading "exec /app/entrypoint.sh: no such
+# file or directory" error.
+* text=auto eol=lf
+
+# Belt-and-suspenders: explicitly pin the file types that MUST stay LF.
+*.sh        text eol=lf
+*.py        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.conf      text eol=lf
+*.md        text eol=lf
+Dockerfile  text eol=lf
+.env*       text eol=lf
+
+# Treat well-known binary blobs as binary so git does not try to diff or
+# transform them.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
+*.tar   binary
+*.gz    binary

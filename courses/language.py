@@ -118,15 +118,42 @@ for en, tr_list in EN_TO_TR.items():
         _TR_TO_EN.setdefault(tr, []).append(en)
 
 
-# Turkish-only characters; presence of any is a strong signal the text is Turkish.
+# Turkish-only characters; their presence is a Turkish signal — but a single
+# proper noun (e.g. "Acıbadem", "Ataşehir") in an otherwise English sentence
+# can fool a naive char check, so the detector also strips known proper nouns
+# and weighs Turkish vs English signals.
 _TR_CHARS = set("çğıöşüÇĞİÖŞÜ")
 
-# Turkish stop-words / markers used to detect Turkish input that contains no
-# Turkish-specific letter (a typed-in-haste "merhaba acu nedir" or "telefon
-# nedir"). The set is intentionally tight: only words that are unambiguously
-# Turkish AND not proper nouns. Words like "acibadem" or "ders" are excluded
-# because they occur in English questions too ("What courses does Acibadem
-# University offer?").
+# Proper nouns that contain Turkish-specific characters but appear in English
+# questions too. They are stripped before the language vote.
+_PROPER_NOUNS = (
+    "acıbadem", "acibadem", "acu",
+    "atatürk", "ataturk",
+    "ataşehir", "atasehir", "i̇stanbul", "istanbul",
+    "kayışdağı", "kayisdagi", "kerem", "aydınlar", "aydinlar",
+)
+_PROPER_NOUNS_RE = re.compile(
+    r"\b(?:" + "|".join(re.escape(n) for n in _PROPER_NOUNS) + r")\b",
+    re.IGNORECASE,
+)
+
+# Question/imperative starters that strongly indicate English. If the very
+# first token of the text is one of these, classify as English regardless of
+# any Turkish-flavoured proper nouns later in the sentence.
+_EN_STARTERS = {
+    "what", "which", "where", "when", "how", "who", "whose", "whom", "why",
+    "is", "are", "was", "were", "am", "be", "been", "being",
+    "do", "does", "did", "have", "has", "had",
+    "can", "could", "would", "should", "may", "might", "must", "shall", "will",
+    "tell", "list", "show", "give", "provide", "explain", "describe",
+    "i", "we", "you", "they", "he", "she", "it",
+}
+
+# Turkish stop-words / markers used to detect Turkish input even when there
+# are no Turkish-specific letters. The list is intentionally narrow but also
+# includes domain words ("üniversite", "fakülte", "bölüm", "ders") whose
+# spelling is unambiguously Turkish — their English equivalents are spelt
+# differently ("university", "faculty", ...).
 _TR_WORDS = {
     # greetings / discourse markers
     "merhaba", "selam", "evet", "hayır", "lütfen", "teşekkür", "teşekkürler",
@@ -136,23 +163,67 @@ _TR_WORDS = {
     "mı", "mi", "mu", "mü", "değil",
     # very common verbs / connectives
     "var", "yok", "için", "ile",
+    # university-domain Turkish forms
+    "üniversite", "üniversitesi", "üniversitesinde",
+    "fakülte", "fakültesi", "fakülteleri",
+    "bölüm", "bölümü", "bölümünde", "bölümleri",
+    "ders", "dersi", "dersler", "dersleri",
+    "öğrenci", "öğretim", "kayıt", "burs",
+}
+
+# Common English content words; presence boosts the English score.
+_EN_WORDS = {
+    "the", "a", "an", "of", "in", "on", "at", "to", "for", "with", "from",
+    "by", "and", "or", "but", "if", "as", "that", "this", "these", "those",
+    "university", "faculty", "department", "course", "courses", "student",
+    "address", "phone", "campus", "contact",
 }
 
 
-def detect_language(text: str) -> str:
-    """Return 'tr' if the text is Turkish, otherwise 'en'.
+def _word_tokens(text: str) -> set[str]:
+    return set(re.findall(r"\b[\wçğıöşüÇĞİÖŞÜ]+\b", text.lower()))
 
-    The chatbot only formally distinguishes between Turkish and English. Any
-    other language is treated as English so the LLM still has a safe default.
+
+def detect_language(text: str) -> str:
+    """Return ``'tr'`` if the text is Turkish, otherwise ``'en'``.
+
+    Three-stage decision so a single Turkish-flavoured proper noun (e.g.
+    ``"Acıbadem"``) inside an otherwise English sentence does not flip the
+    answer language:
+
+      1. **First-token shortcut.** If the leading word is an unmistakable
+         English starter (``what``, ``which`` …) or Turkish marker
+         (``hangi``, ``nedir`` …), use that.
+      2. **Proper-noun aware character count.** Strip the well-known proper
+         nouns and *then* count Turkish-specific letters; the remaining tally
+         feeds a Turkish-vs-English score.
+      3. **Score vote.** TR signals (TR-only chars × 2 + TR words × 3) vs EN
+         signals (EN words × 2). The higher score wins; ties resolve to EN.
     """
     if not text:
         return "en"
-    if any(ch in _TR_CHARS for ch in text):
+
+    lower = text.strip().lower()
+
+    first_match = re.match(r"[\wçğıöşüÇĞİÖŞÜ]+", lower)
+    first_token = first_match.group(0) if first_match else ""
+    if first_token in _TR_WORDS:
         return "tr"
-    tokens = set(re.findall(r"\b[\wçğıöşüÇĞİÖŞÜ]+\b", text.lower()))
-    if tokens & _TR_WORDS:
-        return "tr"
-    return "en"
+    if first_token in _EN_STARTERS:
+        return "en"
+
+    cleaned = _PROPER_NOUNS_RE.sub(" ", lower)
+    tr_char_count = sum(1 for ch in cleaned if ch in _TR_CHARS)
+
+    tokens = _word_tokens(cleaned)
+    tr_word_count = len(tokens & _TR_WORDS)
+    en_word_count = len(tokens & _EN_WORDS)
+
+    tr_score = tr_char_count * 2 + tr_word_count * 3
+    en_score = en_word_count * 2
+    if tr_score == 0 and en_score == 0:
+        return "en"
+    return "tr" if tr_score > en_score else "en"
 
 
 def expand_query(query: str) -> str:
