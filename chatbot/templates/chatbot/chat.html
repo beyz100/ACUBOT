@@ -36,9 +36,21 @@
       width: 280px;
       background: var(--surface);
       border-right: 1px solid var(--border);
+      overflow: hidden;
+      transition: width 0.3s ease, border-color 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      border-right-color: transparent;
+    }
+
+    .sidebar-inner {
+      width: 280px;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      height: 100%;
     }
 
     .sidebar-header {
@@ -127,17 +139,36 @@
     .header {
       padding: 1.5rem;
       border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
     }
-    .header h1 {
+    .header-text h1 {
       margin: 0 0 0.25rem;
       font-size: 1.35rem;
       font-weight: 600;
       letter-spacing: -0.02em;
     }
-    .header p {
+    .header-text p {
       margin: 0;
       font-size: 0.9rem;
       color: var(--muted);
+    }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .icon-btn:hover {
+      background: var(--user-bg);
+      border-color: var(--accent);
     }
     .messages-container {
       flex: 1;
@@ -263,22 +294,33 @@
 <body>
   <div class="container">
 
-    <div class="sidebar">
-      <div class="sidebar-header">Chat History</div>
-      <div class="sidebar-content" id="conversationsList">
-        <p style="color: var(--muted); font-size: 0.85rem; padding: 1rem; text-align: center;">
-          No conversations yet.
-        </p>
-      </div>
-      <div class="sidebar-actions">
-        <button class="btn-new-chat" onclick="startNewChat()">+ New Chat</button>
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-header">Chat History</div>
+        <div class="sidebar-content" id="conversationsList">
+          <p style="color: var(--muted); font-size: 0.85rem; padding: 1rem; text-align: center;">
+            No conversations yet.
+          </p>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn-new-chat" onclick="startNewChat()">+ New Chat</button>
+        </div>
       </div>
     </div>
 
     <div class="main-content">
       <div class="header">
-        <h1>ACUBOT</h1>
-        <p>Hello! Ask about Acibadem University.</p>
+        <button id="sidebarToggle" class="icon-btn" title="Geçmişi Gizle/Göster">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="header-text">
+          <h1>ACUBOT</h1>
+          <p>Hello! Ask about Acibadem University.</p>
+        </div>
       </div>
       <div class="messages-container" id="messagesContainer"></div>
       <div class="composer">
@@ -516,6 +558,19 @@
     }
     
     document.addEventListener('DOMContentLoaded',()=>{
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggle');
+
+      const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+      if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+      });
+
       const textarea = document.getElementById('message');
       textarea.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
