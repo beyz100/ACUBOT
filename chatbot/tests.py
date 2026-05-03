@@ -10,7 +10,6 @@ from .services import LLMReply
 
 class ChatbotModelTests(TestCase):
     def setUp(self):
-        # Testler için sahte bir sohbet oluştur
         self.conversation = Conversation.objects.create(session_key="test_session_123")
 
     def test_conversation_and_message_creation(self):
@@ -21,10 +20,8 @@ class ChatbotModelTests(TestCase):
         msg_bot = ChatMessage.objects.create(
             conversation=self.conversation, role="assistant", text="Size nasıl yardımcı olabilirim?"
         )
-
-        # Veritabanına kayıt atıldığını doğrula
+        
         self.assertEqual(self.conversation.messages.count(), 2)
-        # String (__str__) metodunun doğru formatta döndüğünü test et
         self.assertTrue("[Kullanıcı]" in str(msg_user))
         self.assertTrue("Merhaba ACUBOT" in str(msg_user))
 
@@ -39,7 +36,6 @@ class ChatbotAPITests(TestCase):
         Yapay zekayı (Ollama) meşgul etmeden, API'ın doğru çalışıp çalışmadığını
         (Mocking yöntemi ile) test eder.
         """
-        # Yapay zekadan geliyormuş gibi sahte bir cevap oluşturuyoruz
         mock_ask.return_value = LLMReply(
             text="Bu bir test cevabıdır.",
             language="tr",
@@ -47,11 +43,9 @@ class ChatbotAPITests(TestCase):
             error=False
         )
 
-        # API'a istek at
         url = reverse('quick_ask')
         response = self.client.post(url, {'message': 'Bölüm başkanı kim?'}, format='json')
 
-        # Başarı durumlarını kontrol et
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['answer'], "Bu bir test cevabıdır.")
         self.assertFalse(response.data['error'])

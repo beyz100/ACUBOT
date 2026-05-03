@@ -40,7 +40,7 @@ def _save_messages_to_db(conversation, user_text, bot_text):
     ChatMessage.objects.create(
         conversation=conversation, role='assistant', text=bot_text
     )
-    conversation.save()  # updates updated_at
+    conversation.save()  
 
 
 def _history_for_llm(history):

@@ -18,20 +18,15 @@ def _env_bool(name, default=False):
     return os.environ.get(name, str(int(default))).strip().lower() in {"1", "true", "yes", "on"}
 
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-2lzftp8!mhn9)2&cl8^$$0b(jjsunvp&5=c)#bic#da^ah35wl",
 )
 
-# SECURITY WARNING: don't run with debug turned on in production!
+
 DEBUG = _env_bool("DJANGO_DEBUG", default=True)
 
 ALLOWED_HOSTS = [
@@ -41,7 +36,6 @@ ALLOWED_HOSTS = [
 ]
 
 
-# Application definition
 
 INSTALLED_APPS = [
     "django.contrib.admin",

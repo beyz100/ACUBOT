@@ -71,8 +71,7 @@ def scrape_deans():
     """
     data = {"deans": {}}
     
-    # Fallback dean data (should be updated from actual scraping)
-    # URL patterns to try for each faculty
+
     faculty_urls = {
         "Tıp Fakültesi": f"{BASE_URL}/akademik/tip-fakultesi",
         "Sağlık Bilimleri Fakültesi": f"{BASE_URL}/akademik/saglik-bilimleri-fakultesi",
@@ -85,9 +84,7 @@ def scrape_deans():
         try:
             soup = scrape_page(faculty_url)
             if soup:
-                # Try to find dean info - look for text containing "Dekan"
                 text = soup.get_text()
-                # Pattern matching for dean names (Prof. Dr. / Doç. Dr. etc)
                 dean_pattern = r'(?:Prof\.\s*Dr\.|Doç\.\s*Dr\.|Dr\.)\s+([A-Za-zçğıöşüÇĞİÖŞÜ\s]+?)(?:\n|<|$|,)'
                 matches = re.findall(dean_pattern, text)
                 if matches:
