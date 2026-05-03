@@ -3,7 +3,6 @@ from .models import Conversation, ChatMessage
 
 
 class ChatMessageInline(admin.TabularInline):
-    """Show messages inline within a Conversation in admin."""
     model = ChatMessage
     readonly_fields = ('role', 'text', 'created_at')
     extra = 0

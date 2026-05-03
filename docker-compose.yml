@@ -61,8 +61,6 @@ services:
     image: ollama/ollama
     container_name: acubot_llm
     restart: unless-stopped
-    # Fall back to public DNS — Docker Desktop's embedded resolver
-    # occasionally hangs and `ollama pull` fails with "network is unreachable".
     dns:
       - 1.1.1.1
       - 8.8.8.8

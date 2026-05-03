@@ -3,15 +3,7 @@ from __future__ import annotations
 
 import re
 
-# Bidirectional Turkish ↔ English keyword map. Used for two purposes:
-#   1) Search-query expansion (so an English question still matches the
-#      Turkish data in the database).
-#   2) UniversityInfo recall (matching "telephone" → category 'contact').
-#
-# Keys are lower-case, ASCII-folded English terms. Values are the Turkish
-# synonyms a question might use. The reverse direction is built lazily.
 EN_TO_TR: dict[str, list[str]] = {
-    # general academic vocabulary
     "course": ["ders"],
     "courses": ["ders", "dersler", "dersleri"],
     "elective": ["seçmeli"],
@@ -31,7 +23,6 @@ EN_TO_TR: dict[str, list[str]] = {
     "project": ["proje"],
     "lecture": ["ders"],
     "lab": ["laboratuvar", "laboratuar"],
-    # subjects
     "programming": ["programlama"],
     "algorithm": ["algoritma", "algoritmalar"],
     "algorithms": ["algoritma", "algoritmalar"],
@@ -76,7 +67,6 @@ EN_TO_TR: dict[str, list[str]] = {
     "management": ["yönetim", "yönetimi"],
     "design": ["tasarım"],
     "graduation_project": ["bitirme", "tasarım", "projesi"],
-    # university / contact
     "phone": ["telefon", "tel"],
     "telephone": ["telefon"],
     "email": ["eposta", "e-posta", "mail"],
@@ -92,9 +82,9 @@ EN_TO_TR: dict[str, list[str]] = {
     "dormitory": ["yurt"],
     "transportation": ["ulaşım"],
     "rector": ["rektör"],
+    "dean": ["dekan"],
     "founder": ["kurucu"],
     "history_of": ["tarihçe"],
-    # faculties
     "medicine": ["tıp", "tıbbı"],
     "medical": ["tıp", "tıbbı", "tıbbi"],
     "dentistry": ["diş", "dişçilik", "diş hekimliği"],
@@ -111,21 +101,14 @@ EN_TO_TR: dict[str, list[str]] = {
     "dietetics": ["diyetetik"],
 }
 
-# Build reverse map (tr → [en synonyms]) once at import time.
 _TR_TO_EN: dict[str, list[str]] = {}
 for en, tr_list in EN_TO_TR.items():
     for tr in tr_list:
         _TR_TO_EN.setdefault(tr, []).append(en)
 
 
-# Turkish-only characters; their presence is a Turkish signal — but a single
-# proper noun (e.g. "Acıbadem", "Ataşehir") in an otherwise English sentence
-# can fool a naive char check, so the detector also strips known proper nouns
-# and weighs Turkish vs English signals.
 _TR_CHARS = set("çğıöşüÇĞİÖŞÜ")
 
-# Proper nouns that contain Turkish-specific characters but appear in English
-# questions too. They are stripped before the language vote.
 _PROPER_NOUNS = (
     "acıbadem", "acibadem", "acu",
     "atatürk", "ataturk",
@@ -137,9 +120,6 @@ _PROPER_NOUNS_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Question/imperative starters that strongly indicate English. If the very
-# first token of the text is one of these, classify as English regardless of
-# any Turkish-flavoured proper nouns later in the sentence.
 _EN_STARTERS = {
     "what", "which", "where", "when", "how", "who", "whose", "whom", "why",
     "is", "are", "was", "were", "am", "be", "been", "being",
@@ -149,21 +129,11 @@ _EN_STARTERS = {
     "i", "we", "you", "they", "he", "she", "it",
 }
 
-# Turkish stop-words / markers used to detect Turkish input even when there
-# are no Turkish-specific letters. The list is intentionally narrow but also
-# includes domain words ("üniversite", "fakülte", "bölüm", "ders") whose
-# spelling is unambiguously Turkish — their English equivalents are spelt
-# differently ("university", "faculty", ...).
 _TR_WORDS = {
-    # greetings / discourse markers
     "merhaba", "selam", "evet", "hayır", "lütfen", "teşekkür", "teşekkürler",
-    # interrogatives / function words
     "nedir", "nerede", "nereden", "nasıl", "hangi", "kimdir", "neyin",
-    # particles
     "mı", "mi", "mu", "mü", "değil",
-    # very common verbs / connectives
     "var", "yok", "için", "ile",
-    # university-domain Turkish forms
     "üniversite", "üniversitesi", "üniversitesinde",
     "fakülte", "fakültesi", "fakülteleri",
     "bölüm", "bölümü", "bölümünde", "bölümleri",
@@ -171,7 +141,6 @@ _TR_WORDS = {
     "öğrenci", "öğretim", "kayıt", "burs",
 }
 
-# Common English content words; presence boosts the English score.
 _EN_WORDS = {
     "the", "a", "an", "of", "in", "on", "at", "to", "for", "with", "from",
     "by", "and", "or", "but", "if", "as", "that", "this", "these", "those",
@@ -185,20 +154,10 @@ def _word_tokens(text: str) -> set[str]:
 
 
 def detect_language(text: str) -> str:
-    """Return ``'tr'`` if the text is Turkish, otherwise ``'en'``.
-
-    Three-stage decision so a single Turkish-flavoured proper noun (e.g.
-    ``"Acıbadem"``) inside an otherwise English sentence does not flip the
-    answer language:
-
-      1. **First-token shortcut.** If the leading word is an unmistakable
-         English starter (``what``, ``which`` …) or Turkish marker
-         (``hangi``, ``nedir`` …), use that.
-      2. **Proper-noun aware character count.** Strip the well-known proper
-         nouns and *then* count Turkish-specific letters; the remaining tally
-         feeds a Turkish-vs-English score.
-      3. **Score vote.** TR signals (TR-only chars × 2 + TR words × 3) vs EN
-         signals (EN words × 2). The higher score wins; ties resolve to EN.
+    """Detect language from user input.
+    
+    Turkish has special characters (ç, ğ, ı, ö, ş, ü) and specific words.
+    English queries typically start with question words or auxiliaries.
     """
     if not text:
         return "en"
@@ -219,21 +178,21 @@ def detect_language(text: str) -> str:
     tr_word_count = len(tokens & _TR_WORDS)
     en_word_count = len(tokens & _EN_WORDS)
 
+    # Heavily weight Turkish characters and English words at start
     tr_score = tr_char_count * 2 + tr_word_count * 3
     en_score = en_word_count * 2
+    
+    # If more than 30% of words are detected English, default to English
+    total_words = len(tokens)
+    if total_words > 0 and en_word_count / total_words > 0.3:
+        return "en"
+    
     if tr_score == 0 and en_score == 0:
         return "en"
     return "tr" if tr_score > en_score else "en"
 
 
 def expand_query(query: str) -> str:
-    """Expand a user query with synonyms in the *other* language.
-
-    The expansion is purely additive — every original token is preserved — and
-    is intended to be fed to PostgreSQL full-text/trigram search, never to the
-    LLM. This way an English question can still hit Turkish course names and
-    vice-versa.
-    """
     if not query:
         return query
     lower = query.lower()
@@ -246,7 +205,6 @@ def expand_query(query: str) -> str:
             extras.extend(en_list)
     if not extras:
         return query
-    # de-duplicate while preserving order
     seen: set[str] = set()
     deduped: list[str] = []
     for term in extras:

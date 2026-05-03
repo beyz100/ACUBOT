@@ -2,7 +2,6 @@ from django.db import models
 
 
 class Conversation(models.Model):
-    """A single chat session, identified by Django session key."""
     session_key = models.CharField(max_length=255, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -17,7 +16,6 @@ class Conversation(models.Model):
 
 
 class ChatMessage(models.Model):
-    """A single message (user or assistant) within a conversation."""
     ROLE_CHOICES = [
         ('user', 'Kullanıcı'),
         ('assistant', 'ACUBOT'),

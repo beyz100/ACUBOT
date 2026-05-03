@@ -115,68 +115,98 @@
     },
     {
         "category": "academic",
+        "key": "medicine_faculty_dean",
+        "value": "Tıp Fakültesi Dekanı: Prof. Dr. Nadi BAKIRCI",
+        "keywords": "tıp fakültesi dekanı, medicine dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "health_sciences_faculty_dean",
+        "value": "Sağlık Bilimleri Fakültesi Dekanı: Prof. Dr. Murat BAŞ",
+        "keywords": "sağlık bilimleri fakültesi dekanı, health sciences dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "engineering_faculty_dean",
+        "value": "Mühendislik ve Doğa Bilimleri Fakültesi Dekanı: Prof. Dr. Ata AKIN",
+        "keywords": "mühendislik fakültesi dekanı, engineering dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "pharmacy_faculty_dean",
+        "value": "Eczacılık Fakültesi Dekanı: Prof. Dr. Mert ÜLGEN",
+        "keywords": "eczacılık fakültesi dekanı, pharmacy dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "humanities_faculty_dean",
+        "value": "İnsan ve Toplum Bilimleri Fakültesi Dekanı: Prof. Dr. İnci USER",
+        "keywords": "İnsan ve toplum bilimleri fakültesi dekanı, humanities dean, faculty dean"
+    },
+    {
+        "category": "academic",
         "key": "computer_engineering_head",
-        "value": "Bilgisayar Mühendisliği Bölüm Başkanı: Prof. Dr. Mustafa Yılmaz",
+        "value": "Bilgisayar Mühendisliği Bölüm Başkanı: Prof. Dr. Ahmet BULUT",
         "keywords": "bilgisayar mühendisliği başkanı, computer engineering head, department head"
     },
     {
         "category": "academic",
         "key": "biomedical_engineering_head",
-        "value": "Biyomedikal Mühendisliği Bölüm Başkanı: Doç. Dr. Fatih Koçer",
+        "value": "Biyomedikal Mühendisliği Bölüm Başkanı: Prof. Dr. Özge CAN",
         "keywords": "biyomedikal mühendisliği başkanı, biomedical engineering head"
     },
     {
         "category": "academic",
         "key": "molecular_biology_head",
-        "value": "Moleküler Biyoloji ve Genetik Bölüm Başkanı: Prof. Dr. Ayşe Uzun",
+        "value": "Moleküler Biyoloji ve Genetik Bölüm Başkanı: Prof. Dr. Batu ERMAN",
         "keywords": "moleküler biyoloji başkanı, genetik başkanı, molecular biology head"
     },
     {
         "category": "academic",
         "key": "medicine_head",
-        "value": "Tıp Bölüm Başkanı: Prof. Dr. İbrahim Demir",
+        "value": "Tıp Bölüm Başkanı: Prof. Dr. Alp BAYRAMOĞLU",
         "keywords": "tıp başkanı, medicine head"
     },
     {
         "category": "academic",
         "key": "pharmacy_head",
-        "value": "Eczacılık Bölüm Başkanı: Prof. Dr. Zeynep Kaya",
+        "value": "Eczacılık Bölüm Başkanı: Prof. Dr. Umut BULUT",
         "keywords": "eczacılık başkanı, pharmacy head"
     },
     {
         "category": "academic",
         "key": "nursing_head",
-        "value": "Hemşirelik Bölüm Başkanı: Doç. Dr. Elif Turan",
+        "value": "Hemşirelik Bölüm Başkanı: Prof. Dr. Ükke KARABACAK",
         "keywords": "hemşirelik başkanı, nursing head"
     },
     {
         "category": "academic",
         "key": "physiotherapy_head",
-        "value": "Fizyoterapi ve Rehabilitasyon Bölüm Başkanı: Dr. Ömer Şimşek",
+        "value": "Fizyoterapi ve Rehabilitasyon Bölüm Başkanı: Doç. Dr. Nuray ALACA",
         "keywords": "fizyoterapi başkanı, physiotherapy head"
     },
     {
         "category": "academic",
         "key": "nutrition_head",
-        "value": "Beslenme ve Diyetetik Bölüm Başkanı: Prof. Dr. Metin Yağız",
+        "value": "Beslenme ve Diyetetik Bölüm Başkanı: Prof. Dr. Murat BAŞ",
         "keywords": "beslenme başkanı, nutrition head, diyetetik başkanı"
     },
     {
         "category": "academic",
         "key": "health_management_head",
-        "value": "Sağlık Yönetimi Bölüm Başkanı: Doç. Dr. Gül Yavuz",
+        "value": "Sağlık Yönetimi Bölüm Başkanı: Prof. Dr. Mesut ÇİMEN",
         "keywords": "sağlık yönetimi başkanı, health management head"
     },
     {
         "category": "academic",
         "key": "psychology_head",
-        "value": "Psikoloji Bölüm Başkanı: Prof. Dr. Ahmet Demir",
+        "value": "Psikoloji Bölüm Başkanı: Doç. Dr. Belma BEKÇİ",
         "keywords": "psikoloji başkanı, psychology head"
     },
     {
         "category": "academic",
         "key": "sociology_head",
-        "value": "Sosyoloji Bölüm Başkanı: Doç. Dr. Nazlı Erdoğan",
+        "value": "Sosyoloji Bölüm Başkanı: Prof. Dr. Ayça KURTOĞLU",
         "keywords": "sosyoloji başkanı, sociology head"
     },
     {
