@@ -16,8 +16,6 @@ from courses.retrieval import format_for_llm, retrieve
 logger = logging.getLogger(__name__)
 
 
-# How many previous turns to include when building the prompt. Each "turn" is
-# one user/assistant exchange. The LLM sees at most HISTORY_TURNS pairs.
 HISTORY_TURNS = 4
 
 
@@ -51,8 +49,6 @@ STRICT RULES:
 }
 
 
-# Prefixes the model occasionally echoes back from the chat scaffolding.
-# Stripped before the answer is shown to the user.
 _LABEL_RE = re.compile(
     r"^\s*(?:user|assistant|kullanıcı|kullanici|asistan|bilgi\s*tabanı|knowledge\s*base)\s*[:：]\s*",
     re.IGNORECASE,
@@ -115,10 +111,8 @@ def _scrub_labels(text: str) -> str:
                 if _has_following_assistant_label(lines, i):
                     drop_line = True
                     break
-                # Mislabeling: peel off the prefix, keep the answer.
                 line = rest
                 continue
-            # Assistant / knowledge-base header — strip and keep going.
             line = rest
         if drop_line:
             continue
@@ -133,22 +127,6 @@ class LLMReply:
     language: str
     context_size: int
     error: bool = False
-
-
-def _get_contextual_query(user_message: str, history: list[tuple[str, str]] | None) -> str:
-    if not history:
-        return user_message
-
-    last_user_msg = ""
-    for role, text in reversed(history):
-        if role == "user":
-            last_user_msg = text
-            break
-
-    if last_user_msg:
-        return f"{last_user_msg} {user_message}"
-
-    return user_message
 
 
 def _build_messages(
@@ -182,11 +160,8 @@ def _ollama_options() -> dict:
     return {
         "temperature": 0.0,
         "top_p": 0.9,
-        # Context window kept small (2048) for faster inference on CPU.
-        # Most queries need <1000 tokens context for courses.
-        "num_ctx": 2048,
-        # Limit output to 1024 tokens (usually <500 needed).
-        "num_predict": 1024,
+        "num_ctx": 4096,
+        "num_predict": 2048,
     }
 
 
@@ -197,8 +172,6 @@ def _call_ollama(messages: list[dict]) -> tuple[str | None, str | None]:
         "model": settings.OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
-        # Keep the model in RAM between requests; without this Ollama unloads
-        # after 5 min of inactivity and the next call eats a 10–30 s reload.
         "keep_alive": settings.OLLAMA_KEEP_ALIVE,
         "options": _ollama_options(),
     }
@@ -270,9 +243,7 @@ def ask(
     the most recent HISTORY_TURNS exchanges are forwarded to the LLM.
     """
     language = detect_language(user_message)
-
-    contextual_query = _get_contextual_query(user_message, history)
-    result = retrieve(contextual_query)
+    result = retrieve(user_message)
     context_text = format_for_llm(result, language)
 
     trimmed_history: list[tuple[str, str]] = []
@@ -309,8 +280,7 @@ def ask_stream(
     Always finishes with exactly one "done" event.
     """
     language = detect_language(user_message)
-    contextual_query = _get_contextual_query(user_message, history)
-    result = retrieve(contextual_query)
+    result = retrieve(user_message)
     context_text = format_for_llm(result, language)
     context_size = result.total()
 
@@ -331,7 +301,7 @@ def ask_stream(
 
     chunks: list[str] = []
     error_code: str | None = None
-    label_scrubbed = False  # only scrub the very first user-visible chunk
+    label_scrubbed = False 
 
     try:
         with requests.post(
@@ -353,23 +323,18 @@ def ask_stream(
                     piece = obj.get("message", {}).get("content", "")
                     if piece:
                         chunks.append(piece)
-                        # Scrub leading labels on the first non-empty emit.
                         if not label_scrubbed:
                             joined = "".join(chunks)
                             cleaned = _scrub_labels(joined)
                             if cleaned != joined:
-                                # Re-seed chunks with the scrubbed text so
-                                # subsequent emissions don't re-introduce it.
                                 chunks = [cleaned]
                                 if cleaned:
                                     yield {"type": "chunk", "text": cleaned}
                                     label_scrubbed = True
                                 continue
-                            # Wait for more text before deciding.
                             if any(ch.isalpha() for ch in joined) and len(joined) >= 8:
                                 label_scrubbed = True
                                 yield {"type": "chunk", "text": piece}
-                            # else: still buffering, do not yield yet
                         else:
                             yield {"type": "chunk", "text": piece}
                     if obj.get("done"):
