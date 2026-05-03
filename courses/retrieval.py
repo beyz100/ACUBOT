@@ -290,12 +290,24 @@ def _retrieve_courses(
     limit: int,
 ) -> list[Course]:
     """Find the courses most relevant to the query, optionally pre-filtered to
-    a department or faculty."""
+    a department or faculty. Excludes electives and internships."""
     base = Course.objects.select_related("department__faculty")
     if department is not None:
         base = base.filter(department=department)
     elif faculty is not None:
         base = base.filter(department__faculty=faculty)
+
+    # Filter out non-course entries (electives, internships, etc.)
+    exclude_keywords = [
+        'seçmeli', 'secmeli', 'elective',
+        'staj', 'internship',
+        'mezuniyet', 'graduation',
+        'seminer', 'seminar',
+    ]
+    exclude_q = Q()
+    for keyword in exclude_keywords:
+        exclude_q |= Q(name__icontains=keyword)
+    base = base.exclude(exclude_q)
 
     semesters = _detect_semesters(query)
     if semesters is not None:
@@ -444,7 +456,7 @@ def retrieve(query: str) -> RetrievalResult:
     # context window (~4096 tokens for the default 3B model). When the user
     # asks for "all courses of department X" the department-scoping branch
     # already returns the full catalogue, so this cap rarely bites.
-    courses = _retrieve_courses(query, department, faculty, limit=50)
+    courses = _retrieve_courses(query, department, faculty, limit=150)
 
     # When the user asks "what faculties" / "list all faculties" we cannot
     # rely on trigram similarity (the literal word "faculties" doesn't match
@@ -546,18 +558,71 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
 
     if result.courses:
         rows = []
+        # Group courses by base name (e.g., "Matematik" for "Matematik 1"/"Matematik 2")
+        # Also match by code similarity (MAT101/MAT102, MAT201/MAT202, etc.)
+        course_groups: dict[str, list[tuple[int, Course]]] = {}
+
         for c in result.courses:
-            row = f"- {c.code} {c.name}"
-            if c.name_en:
-                row += f" / {c.name_en}"
-            extras: list[str] = []
-            if c.ects:
-                extras.append(f"{c.ects} ECTS")
-            if c.semester:
-                extras.append(f"semester {c.semester}")
-            extras.append(f"dept: {c.department.name}")
-            row += f" ({', '.join(extras)})"
-            rows.append(row)
+            # Try to extract part number from name (e.g., "Matematik 1" → "Matematik", 1)
+            name_match = re.match(r'^(.+?)\s+([12])$', c.name.strip())
+            if name_match:
+                base_name = name_match.group(1)
+                part_num = int(name_match.group(2))
+            else:
+                base_name = c.name
+                part_num = 0
+
+            if base_name not in course_groups:
+                course_groups[base_name] = []
+            course_groups[base_name].append((part_num, c))
+
+        # Format rows: merge paired courses (1+2), keep singles
+        for base_name in sorted(course_groups.keys()):
+            group = course_groups[base_name]
+
+            # Check if we have both part 1 and 2
+            has_part_1 = any(p == 1 for p, _ in group)
+            has_part_2 = any(p == 2 for p, _ in group)
+
+            if len(group) == 2 and has_part_1 and has_part_2:
+                # Both parts 1 and 2 exist — merge them
+                c1 = next(c for p, c in group if p == 1)
+                c2 = next(c for p, c in group if p == 2)
+
+                # Show as "Code: Name 1-2"
+                row = f"- {c1.code}/{c2.code} {base_name} 1-2"
+                if c1.name_en or c2.name_en:
+                    en_name = c1.name_en or c2.name_en
+                    row += f" / {en_name}"
+
+                # Use ECTS from part 1 (or combine if different)
+                ects_str = f"{c1.ects}" if c1.ects else ""
+                if c2.ects and c1.ects and c1.ects != c2.ects:
+                    ects_str = f"{c1.ects}+{c2.ects}"
+
+                extras: list[str] = []
+                if ects_str:
+                    extras.append(f"{ects_str} ECTS")
+                if c1.semester:
+                    extras.append(f"semester {c1.semester}")
+                extras.append(f"dept: {c1.department.name}")
+                row += f" ({', '.join(extras)})"
+                rows.append(row)
+            else:
+                # Single course or no pairing - list each separately
+                for part_num, c in sorted(group, key=lambda x: x[0] if x[0] > 0 else 999):
+                    row = f"- {c.code} {c.name}"
+                    if c.name_en:
+                        row += f" / {c.name_en}"
+                    extras: list[str] = []
+                    if c.ects:
+                        extras.append(f"{c.ects} ECTS")
+                    if c.semester:
+                        extras.append(f"semester {c.semester}")
+                    extras.append(f"dept: {c.department.name}")
+                    row += f" ({', '.join(extras)})"
+                    rows.append(row)
+
         blocks.append("Courses:\n" + "\n".join(rows))
 
     if result.university_info:

@@ -114,6 +114,17 @@ def seed_courses(departments, flush=False):
 
     rows = _load_json('courses.json')
     if rows is None:
+        rows =[]
+
+    bologna_path = Path(__file__).resolve().parent / 'bologna_data.json'
+    if bologna_path.exists():
+        with open(bologna_path, 'r', encoding='utf-8') as f:
+            bologna_rows = json.load(f)
+            rows.extend(bologna_rows)
+            print(f"  📥  bologna_data.json üzerinden {len(bologna_rows)} gerçek ders dahil edildi.")
+
+    if not rows:
+        print("  ⚠  Yüklenecek ders bulunamadı.")
         return
 
     added = 0

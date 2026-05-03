@@ -135,6 +135,22 @@ class LLMReply:
     error: bool = False
 
 
+def _get_contextual_query(user_message: str, history: list[tuple[str, str]] | None) -> str:
+    if not history:
+        return user_message
+
+    last_user_msg = ""
+    for role, text in reversed(history):
+        if role == "user":
+            last_user_msg = text
+            break
+
+    if last_user_msg:
+        return f"{last_user_msg} {user_message}"
+
+    return user_message
+
+
 def _build_messages(
     user_message: str,
     context_text: str,
@@ -166,12 +182,11 @@ def _ollama_options() -> dict:
     return {
         "temperature": 0.0,
         "top_p": 0.9,
-        # Context window kept small (4096) so 3B-class models stay snappy
-        # on CPU-only machines. Bump to 8192 if you switch to a larger
-        # model on a workstation with a GPU.
-        "num_ctx": 4096,
-        # Up to ~50 course rows can need >1.5k tokens to render.
-        "num_predict": 2048,
+        # Context window kept small (2048) for faster inference on CPU.
+        # Most queries need <1000 tokens context for courses.
+        "num_ctx": 2048,
+        # Limit output to 1024 tokens (usually <500 needed).
+        "num_predict": 1024,
     }
 
 
@@ -256,7 +271,8 @@ def ask(
     """
     language = detect_language(user_message)
 
-    result = retrieve(user_message)
+    contextual_query = _get_contextual_query(user_message, history)
+    result = retrieve(contextual_query)
     context_text = format_for_llm(result, language)
 
     trimmed_history: list[tuple[str, str]] = []
@@ -293,7 +309,8 @@ def ask_stream(
     Always finishes with exactly one "done" event.
     """
     language = detect_language(user_message)
-    result = retrieve(user_message)
+    contextual_query = _get_contextual_query(user_message, history)
+    result = retrieve(contextual_query)
     context_text = format_for_llm(result, language)
     context_size = result.total()
 

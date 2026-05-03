@@ -4,4 +4,6 @@ requests
 beautifulsoup4
 djangorestframework
 django-filter
+selenium
+webdriver-manager
 
