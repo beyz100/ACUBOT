@@ -82,6 +82,7 @@ EN_TO_TR: dict[str, list[str]] = {
     "dormitory": ["yurt"],
     "transportation": ["ulaşım"],
     "rector": ["rektör"],
+    "dean": ["dekan"],
     "founder": ["kurucu"],
     "history_of": ["tarihçe"],
     "medicine": ["tıp", "tıbbı"],
@@ -153,6 +154,11 @@ def _word_tokens(text: str) -> set[str]:
 
 
 def detect_language(text: str) -> str:
+    """Detect language from user input.
+    
+    Turkish has special characters (ç, ğ, ı, ö, ş, ü) and specific words.
+    English queries typically start with question words or auxiliaries.
+    """
     if not text:
         return "en"
 
@@ -172,8 +178,15 @@ def detect_language(text: str) -> str:
     tr_word_count = len(tokens & _TR_WORDS)
     en_word_count = len(tokens & _EN_WORDS)
 
+    # Heavily weight Turkish characters and English words at start
     tr_score = tr_char_count * 2 + tr_word_count * 3
     en_score = en_word_count * 2
+    
+    # If more than 30% of words are detected English, default to English
+    total_words = len(tokens)
+    if total_words > 0 and en_word_count / total_words > 0.3:
+        return "en"
+    
     if tr_score == 0 and en_score == 0:
         return "en"
     return "tr" if tr_score > en_score else "en"

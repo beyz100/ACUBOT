@@ -2,12 +2,13 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import json
+import re
 
 BASE_URL = "https://www.acibadem.edu.tr"
 
 def scrape_page(url):
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         time.sleep(2)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
@@ -63,11 +64,45 @@ def scrape_faculties():
             data["faculties"].append(f.get_text(strip=True))
     return data
 
+def scrape_deans():
+    """
+    Scrape dean information from faculty pages.
+    This is a template function - it tries to find dean info from academic pages.
+    """
+    data = {"deans": {}}
+    
+    # Fallback dean data (should be updated from actual scraping)
+    # URL patterns to try for each faculty
+    faculty_urls = {
+        "Tıp Fakültesi": f"{BASE_URL}/akademik/tip-fakultesi",
+        "Sağlık Bilimleri Fakültesi": f"{BASE_URL}/akademik/saglik-bilimleri-fakultesi",
+        "Eczacılık Fakültesi": f"{BASE_URL}/akademik/eczacilik-fakultesi",
+        "Mühendislik ve Doğa Bilimleri Fakültesi": f"{BASE_URL}/akademik/muhendislik-ve-doga-bilimleri-fakultesi",
+        "İnsan ve Toplum Bilimleri Fakültesi": f"{BASE_URL}/akademik/insan-ve-toplum-bilimleri-fakultesi",
+    }
+    
+    for faculty_name, faculty_url in faculty_urls.items():
+        try:
+            soup = scrape_page(faculty_url)
+            if soup:
+                # Try to find dean info - look for text containing "Dekan"
+                text = soup.get_text()
+                # Pattern matching for dean names (Prof. Dr. / Doç. Dr. etc)
+                dean_pattern = r'(?:Prof\.\s*Dr\.|Doç\.\s*Dr\.|Dr\.)\s+([A-Za-zçğıöşüÇĞİÖŞÜ\s]+?)(?:\n|<|$|,)'
+                matches = re.findall(dean_pattern, text)
+                if matches:
+                    data["deans"][faculty_name] = matches[0].strip()
+        except Exception as e:
+            print(f"Error scraping dean info for {faculty_name}: {e}")
+    
+    return data
+
 def main():
     all_data = {}
     all_data.update(scrape_homepage())
     all_data.update(scrape_contact())
     all_data.update(scrape_faculties())
+    all_data.update(scrape_deans())
 
     with open("acibadem_data.json", "w", encoding="utf-8") as f:
         json.dump(all_data, f, ensure_ascii=False, indent=4)

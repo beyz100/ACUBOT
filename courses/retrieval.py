@@ -31,6 +31,7 @@ INTENT_TO_INFO_CATEGORY: dict[str, str] = {
     "yemekhane": "campus", "cafeteria": "campus", "gidilir": "campus", "nasıl": "campus",
     "neresi": "campus", "yön": "campus", "directions": "campus",
     "rektör": "academic", "rector": "academic",
+    "dekan": "academic", "dean": "academic",
     "kurucu": "academic", "founder": "academic",
     "tarihçe": "academic", "history": "academic",
     "burs": "academic", "scholarship": "academic",
@@ -87,13 +88,29 @@ def _detect_department(query: str) -> Department | None:
         return None
     best: tuple[float, Department] | None = None
     for dept in Department.objects.select_related("faculty").all():
-        window = _best_token_window(query, dept.name)
-        sim = (
+        # Try to match against Turkish name
+        window_tr = _best_token_window(query, dept.name)
+        sim_tr = (
             Department.objects.filter(pk=dept.pk)
-            .annotate(s=TrigramSimilarity("name", window))
+            .annotate(s=TrigramSimilarity("name", window_tr))
             .values_list("s", flat=True)
             .first()
         ) or 0.0
+        
+        # Try to match against English name (if available)
+        sim_en = 0.0
+        if dept.name_en:
+            window_en = _best_token_window(query, dept.name_en)
+            sim_en = (
+                Department.objects.filter(pk=dept.pk)
+                .annotate(s=TrigramSimilarity("name_en", window_en))
+                .values_list("s", flat=True)
+                .first()
+            ) or 0.0
+        
+        # Use the maximum similarity
+        sim = max(sim_tr, sim_en)
+        
         if sim > 0.45 and (best is None or sim > best[0]):
             best = (sim, dept)
     return best[1] if best else None
@@ -104,13 +121,29 @@ def _detect_faculty(query: str) -> Faculty | None:
         return None
     best: tuple[float, Faculty] | None = None
     for fac in Faculty.objects.all():
-        window = _best_token_window(query, fac.name)
-        sim = (
+        # Try to match against Turkish name
+        window_tr = _best_token_window(query, fac.name)
+        sim_tr = (
             Faculty.objects.filter(pk=fac.pk)
-            .annotate(s=TrigramSimilarity("name", window))
+            .annotate(s=TrigramSimilarity("name", window_tr))
             .values_list("s", flat=True)
             .first()
         ) or 0.0
+        
+        # Try to match against English name (if available)
+        sim_en = 0.0
+        if fac.name_en:
+            window_en = _best_token_window(query, fac.name_en)
+            sim_en = (
+                Faculty.objects.filter(pk=fac.pk)
+                .annotate(s=TrigramSimilarity("name_en", window_en))
+                .values_list("s", flat=True)
+                .first()
+            ) or 0.0
+        
+        # Use the maximum similarity
+        sim = max(sim_tr, sim_en)
+        
         if sim > 0.45 and (best is None or sim > best[0]):
             best = (sim, fac)
     return best[1] if best else None
@@ -289,7 +322,7 @@ def _retrieve_courses(
     return merged
 
 
-def _retrieve_university_info(query: str, limit: int) -> list[UniversityInfo]:
+def _retrieve_university_info(query: str, limit: int, department: Department | None = None, faculty: Faculty | None = None) -> list[UniversityInfo]:
     if not query:
         return []
     expanded = expand_query(query)
@@ -305,7 +338,17 @@ def _retrieve_university_info(query: str, limit: int) -> list[UniversityInfo]:
         }
         query_tokens = set(expanded.lower().split())
         scored: list[tuple[int, UniversityInfo]] = []
-        for info in UniversityInfo.objects.filter(category__in=intent_categories):
+        
+        # Filter by category
+        base_qs = UniversityInfo.objects.filter(category__in=intent_categories)
+        
+        # Additional filtering for specific intents
+        if "dekan" in lower or "dean" in lower:
+            base_qs = base_qs.filter(key__icontains="dean")
+        if "rektör" in lower or "rector" in lower:
+            base_qs = base_qs.filter(key__icontains="rector")
+        
+        for info in base_qs:
             haystack = (info.key + " " + info.keywords).lower()
             intent_score = sum(1 for w in intent_words if w in haystack)
             overlap_score = sum(1 for w in query_tokens if w in haystack)
@@ -408,7 +451,12 @@ def retrieve(query: str) -> RetrievalResult:
     else:
         departments = []
 
-    university_info = _retrieve_university_info(query, limit=10)
+    # Adjust university info limit: reduce if it's a dean query without specific department/faculty
+    lower = query.lower()
+    is_dean_query = "dekan" in lower or "dean" in lower
+    info_limit = 3 if (is_dean_query and department is None and faculty is None) else 10
+    
+    university_info = _retrieve_university_info(query, limit=info_limit, department=department, faculty=faculty)
 
     result = RetrievalResult(
         courses=courses,
@@ -439,6 +487,13 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
 
 
     blocks: list[str] = []
+    
+    # Add explicit instructions about what to include
+    if result.matched_department or result.matched_faculty:
+        if language == "tr":
+            blocks.append("*** UYARI: Aşağıdaki bilgiler ve SADECE bu bilgiler doğrudur. Başka dersleri ekleme! ***")
+        else:
+            blocks.append("*** WARNING: Only the information below is correct. Do NOT add or invent any other courses or information! ***")
 
     if result.matched_faculty or result.matched_department:
         scope_lines: list[str] = []

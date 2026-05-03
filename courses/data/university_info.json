@@ -115,6 +115,36 @@
     },
     {
         "category": "academic",
+        "key": "medicine_faculty_dean",
+        "value": "Tıp Fakültesi Dekanı: Prof. Dr. Mehmet Aydın",
+        "keywords": "tıp fakültesi dekanı, medicine dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "health_sciences_faculty_dean",
+        "value": "Sağlık Bilimleri Fakültesi Dekanı: Prof. Dr. Sevim Karakuş",
+        "keywords": "sağlık bilimleri fakültesi dekanı, health sciences dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "engineering_faculty_dean",
+        "value": "Mühendislik ve Doğa Bilimleri Fakültesi Dekanı: Prof. Dr. Levent Doğan",
+        "keywords": "mühendislik fakültesi dekanı, engineering dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "pharmacy_faculty_dean",
+        "value": "Eczacılık Fakültesi Dekanı: Prof. Dr. Hasan Yıldırım",
+        "keywords": "eczacılık fakültesi dekanı, pharmacy dean, faculty dean"
+    },
+    {
+        "category": "academic",
+        "key": "humanities_faculty_dean",
+        "value": "İnsan ve Toplum Bilimleri Fakültesi Dekanı: Prof. Dr. Cavit Aydın",
+        "keywords": "İnsan ve toplum bilimleri fakültesi dekanı, humanities dean, faculty dean"
+    },
+    {
+        "category": "academic",
         "key": "computer_engineering_head",
         "value": "Bilgisayar Mühendisliği Bölüm Başkanı: Prof. Dr. Mustafa Yılmaz",
         "keywords": "bilgisayar mühendisliği başkanı, computer engineering head, department head"

@@ -25,14 +25,21 @@ KESİN KURALLAR:
 1. SADECE aşağıdaki "Bilgi Tabanı" metninde yer alan bilgileri kullanarak cevap ver. Kendi bilgini ekleme.
 2. Eğer kullanıcının sorduğu bölüm veya fakülte (örneğin Hukuk, Mimarlık, Diş Hekimliği vb.) Bilgi Tabanı'nda YOKSA, asla uydurma! Doğrudan şunu söyle: "Üniversitemizde bu bölüm/fakülte bulunmamaktadır."
 3. Diğer cevapsız konular için: "Bu konuda elimde bilgi yok, üniversitenin web sitesini kontrol edebilirsiniz." de.
-4. Cevapların tamamen Türkçe, net ve kısa olsun. Halüsinasyon (olmayan bir şeyi varmış gibi göstermek) KESİNLİKLE YASAKTIR.""",
+4. Cevapların tamamen Türkçe, net ve kısa olsun. 
+5. Halüsinasyon (olmayan bir şeyi varmış gibi göstermek, Bilgi Tabanı'nda olmayan dersleri eklemek) KESİNLİKLE YASAKTIR.
+6. Sadece ve sadece Bilgi Tabanı'nda listelenmiş dersleri ver.
+7. Kullanıcı "dekan" veya "bölüm başkanı" hakkında sorgu yaparsa ve Bilgi Tabanı'nda belirli bir fakülte/bölümle ilgili bilgi yoksa, "Lütfen hangi fakülte veya bölüm?" diye sor.""",
     "en": """You are "ACUBOT", the official AI assistant for Acıbadem University.
 
 STRICT RULES:
 1. Base your answer ONLY on the "Knowledge Base" text provided below. Do not use outside knowledge.
 2. If the department or faculty (e.g., Law, Architecture, Dentistry) asked by the user is NOT in the Knowledge Base, DO NOT hallucinate! Simply say: "We do not have this department/faculty at our university."
 3. For other unknown topics, say: "I don't have that information, please check the university's website."
-4. Answer entirely in English, keep it short and clear. Inventing facts is STRICTLY FORBIDDEN."""
+4. Answer ONLY in English. Answer must be short and clear.
+5. Inventing facts (hallucination) is STRICTLY FORBIDDEN. Never add courses or information not in the Knowledge Base.
+6. Only provide courses that are explicitly listed in the Knowledge Base.
+7. If the user asks about "dean" or "department head" and the Knowledge Base does not have specific information for a particular faculty/department, ask: "Which faculty or department?"
+"""
 }
 
 
@@ -108,11 +115,13 @@ def _build_messages(
 ) -> list[dict]:
     if language == "tr":
         kb_header = "Bilgi Tabanı:"
+        system_intro = "Sen ACUBOT'sun ve Türkçe cevap veriyorsun."
     else:
         kb_header = "Knowledge Base:"
+        system_intro = "You are ACUBOT and you are responding in English."
 
     system_content = (
-        f"{SYSTEM_PROMPTS[language]}\n\n{kb_header}\n{context_text}"
+        f"{system_intro}\n\n{SYSTEM_PROMPTS[language]}\n\n{kb_header}\n{context_text}"
     )
     messages: list[dict] = [{"role": "system", "content": system_content}]
     for role, content in history:
@@ -204,7 +213,11 @@ def ask(
     history: list[tuple[str, str]] | None = None,
 ) -> LLMReply:
     language = detect_language(user_message)
+    logger.info(f"Detected language: {language} for query: {user_message[:100]}")
+    
     result = retrieve(user_message)
+    logger.info(f"Retrieval result - dept: {result.matched_department}, fac: {result.matched_faculty}, courses: {len(result.courses)}")
+    
     context_text = format_for_llm(result, language)
 
     trimmed_history: list[tuple[str, str]] = []
@@ -213,6 +226,7 @@ def ask(
 
     messages = _build_messages(user_message, context_text, trimmed_history, language)
     logger.debug("LLM messages (%d):\n%s", len(messages), messages)
+    logger.info(f"Using language '{language}' for LLM response")
 
     text, error = _call_ollama(messages)
     if error is not None:
