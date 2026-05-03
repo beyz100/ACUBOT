@@ -8,6 +8,7 @@ from rest_framework import status
 
 from .services import ask
 from .models import Conversation, ChatMessage
+from .serializers import ConversationSerializer, ConversationListSerializer
 
 CHAT_HISTORY_SESSION_KEY = "acubot_chat_history"
 CONVERSATION_ID_SESSION_KEY = "acubot_conversation_id"
@@ -15,7 +16,6 @@ MAX_CHAT_TURNS = 25
 
 
 def _get_or_create_conversation(request):
-    """Get existing conversation from session or create a new one."""
     if not request.session.session_key:
         request.session.create()
 
@@ -34,7 +34,6 @@ def _get_or_create_conversation(request):
 
 
 def _save_messages_to_db(conversation, user_text, bot_text):
-    """Persist a user+assistant message pair to PostgreSQL."""
     ChatMessage.objects.create(
         conversation=conversation, role='user', text=user_text
     )
@@ -45,8 +44,6 @@ def _save_messages_to_db(conversation, user_text, bot_text):
 
 
 def _history_for_llm(history):
-    """Convert the [{role, text}] session list into the (role, content)
-    tuples expected by chatbot.services.ask()."""
     return [(item["role"], item["text"]) for item in history if "role" in item]
 
 
@@ -55,7 +52,6 @@ def _history_for_llm(history):
 def chat_ui(request):
     if request.method == "POST" and request.POST.get("clear_history"):
         request.session[CHAT_HISTORY_SESSION_KEY] = []
-        # Start a fresh conversation for the next messages
         request.session.pop(CONVERSATION_ID_SESSION_KEY, None)
         request.session.modified = True
         return redirect(reverse("acubot_chat"))
@@ -79,7 +75,6 @@ def chat_ui(request):
             request.session[CHAT_HISTORY_SESSION_KEY] = history
             request.session.modified = True
 
-            # --- Persist to PostgreSQL ---
             conversation = _get_or_create_conversation(request)
             _save_messages_to_db(conversation, message, reply.text)
 
@@ -95,9 +90,6 @@ def chat_ui(request):
 
 @api_view(['POST'])
 def quick_ask(request):
-    """Stateless one-shot endpoint required by the assignment spec
-    (POST /api/chat/). Does not persist to the database, useful for curl
-    smoke tests and external integrations."""
     user_message = (request.data.get('message') or '').strip()
     if not user_message:
         return Response(
@@ -118,9 +110,10 @@ def quick_ask(request):
 
 @api_view(['POST'])
 def chat_with_acubot(request):
-    """Stateful chat endpoint that records the conversation to PostgreSQL."""
     user_message = (request.data.get('message') or '').strip()
     client_history = request.data.get('history', [])
+    new_conversation_raw = request.data.get('new_conversation', False)
+    new_conversation = str(new_conversation_raw).lower() == 'true' or new_conversation_raw is True
 
     if not user_message:
         return Response(
@@ -128,24 +121,75 @@ def chat_with_acubot(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Prefer history sent by the client; otherwise rebuild it from the DB.
+    if new_conversation:
+        if CONVERSATION_ID_SESSION_KEY in request.session:
+            del request.session[CONVERSATION_ID_SESSION_KEY]
+        request.session.modified = True
+
+    conversation = _get_or_create_conversation(request)
+
     if client_history:
         history_tuples = _history_for_llm(client_history)
     else:
-        conversation = _get_or_create_conversation(request)
         history_tuples = [
             (m.role, m.text) for m in conversation.messages.all()
         ]
 
-    reply = ask(user_message, history=history_tuples)
+    from django.http import StreamingHttpResponse
+    import json
+    from .services import ask_stream
 
-    # --- Persist to PostgreSQL ---
-    conversation = _get_or_create_conversation(request)
-    _save_messages_to_db(conversation, user_message, reply.text)
+    def generate():
+        full_text = ""
+        for chunk in ask_stream(user_message, history=history_tuples):
+            if chunk["type"] == "chunk":
+                full_text += chunk["text"]
+                yield json.dumps({"type": "chunk", "text": chunk["text"]}) + "\n"
+            elif chunk["type"] == "done":
+                _save_messages_to_db(conversation, user_message, chunk["text"])
+                yield json.dumps({
+                    "type": "done",
+                    "text": chunk["text"],
+                    "language": chunk["language"],
+                    "context_size": chunk["context_size"],
+                    "error": chunk["error"]
+                }) + "\n"
 
-    return Response({
-        "response": reply.text,
-        "language": reply.language,
-        "context_size": reply.context_size,
-        "error": reply.error,
-    }, status=status.HTTP_200_OK)
+    return StreamingHttpResponse(generate(), content_type="application/x-ndjson")
+
+
+@api_view(['GET'])
+def list_conversations(request):
+    if not request.session.session_key:
+        request.session.create()
+
+    session_key = request.session.session_key
+    conversations = Conversation.objects.filter(
+        session_key=session_key
+    ).order_by('-updated_at')
+
+    serializer = ConversationListSerializer(conversations, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def get_conversation(request, conversation_id):
+    if not request.session.session_key:
+        request.session.create()
+
+    session_key = request.session.session_key
+
+    try:
+        conversation = Conversation.objects.get(
+            pk=conversation_id,
+            session_key=session_key
+        )
+    except Conversation.DoesNotExist:
+        return Response(
+            {"error": "Conversation not found or access denied."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    serializer = ConversationSerializer(conversation)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+

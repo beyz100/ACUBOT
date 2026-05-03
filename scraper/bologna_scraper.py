@@ -98,7 +98,13 @@ def get_dynamic_departments(driver):
 if __name__ == "__main__":
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    try:
+        driver = webdriver.Chrome(service=Service('/usr/bin/chromedriver'), options=options)
+    except:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
     departments_to_scrape = get_dynamic_departments(driver)
     

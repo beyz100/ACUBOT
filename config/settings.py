@@ -144,17 +144,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-# --- LLM configuration ---
-# Where the Ollama HTTP API lives (default: in-cluster service "llm").
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://llm:11434")
-# Default model is tuned for laptops without GPU acceleration. Override via
-# the OLLAMA_MODEL env var if you have more horsepower (e.g. llama3.1:8b).
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
-# Long enough to let a 3B-class model on CPU finish a full department's
-# course catalogue (~50 rows). Bump higher if you're on slower hardware.
-OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "360"))
-# Keep the model resident in RAM between requests so we don't pay a 10-30 s
-# load cost on every question. Ollama accepts strings like "1h", "30m", "0".
+OLLAMA_TIMEOUT_SECONDS = int(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "60"))
 OLLAMA_KEEP_ALIVE = os.environ.get("OLLAMA_KEEP_ALIVE", "1h")
 
 LOGGING = {

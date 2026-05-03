@@ -3,164 +3,404 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ACUBOT</title>
+  <title>ACUBOT - Asistan</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
     :root {
-      --bg: #0f1419;
-      --surface: #1a2332;
-      --border: #2d3a4f;
-      --text: #e8edf4;
-      --muted: #8b9cb3;
-      --accent: #3d8bfd;
-      --user-bg: #243447;
-      --bot-bg: #1e2d22;
+      /* Renk Şeması: Mavi, Turuncu, Beyaz */
+      --bg: #f4f7fa;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-light: #ffffff;
+      --muted: #64748b;
+
+      --blue: #0f4c81;
+      --blue-hover: #0b3861;
+      --orange: #f26d21;
+      --orange-hover: #d95a16;
+
+      --user-bg: var(--blue);
+      --bot-bg: #ffffff;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-family: var(--font-family);
       background: var(--bg);
       color: var(--text);
-      line-height: 1.5;
+      line-height: 1.6;
       overscroll-behavior: none;
     }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
     .container {
       display: flex;
       height: 100vh;
-      gap: 1px;
-      background: var(--border);
+      background: var(--bg);
     }
 
+    /* Sol Panel (Sidebar) */
+    .sidebar {
+      width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      transition: width 0.3s ease;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+    }
+
+    .sidebar.collapsed { width: 0; border-right: none; }
+
+    .sidebar-inner {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .sidebar-header {
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--blue);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+    }
+
+    .conversation-item {
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .conversation-item:hover {
+      border-color: var(--blue);
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-1px);
+    }
+
+    .conversation-item.active {
+      background: #f8fafc;
+      border-left: 4px solid var(--orange);
+      border-color: var(--blue);
+    }
+
+    .conversation-item .timestamp {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+      font-weight: 500;
+    }
+
+    .conversation-item.active .timestamp {
+      color: var(--blue);
+    }
+
+    .conversation-item .preview {
+      font-size: 0.85rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .sidebar-actions {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      background: #f8fafc;
+    }
+
+    .btn-new-chat {
+      width: 100%;
+      background: var(--blue);
+      color: var(--text-light);
+      border: none;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-new-chat:hover { background: var(--blue-hover); }
+    .btn-new-chat:active { transform: scale(0.98); }
+
+    /* Ana İçerik */
     .main-content {
       flex: 1;
       display: flex;
       flex-direction: column;
       background: var(--bg);
+      position: relative;
     }
+
     .header {
-      padding: 1.5rem;
+      padding: 1rem 1.5rem;
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      box-shadow: var(--shadow-sm);
+      z-index: 5;
     }
-    .header h1 {
-      margin: 0 0 0.25rem;
-      font-size: 1.35rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-    .header p {
-      margin: 0;
-      font-size: 0.9rem;
+
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border);
       color: var(--muted);
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
     }
+
+    .icon-btn:hover {
+      background: #f1f5f9;
+      color: var(--blue);
+      border-color: var(--blue);
+    }
+
+    .header-text { flex: 1; }
+
+    .header-text h1 {
+      margin: 0 0 0.15rem;
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--blue);
+    }
+
+    .header-text h1 span {
+      color: var(--orange);
+    }
+
+    .header-text p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* Dil Değiştirme Butonu */
+    .lang-toggle {
+      background: transparent;
+      border: 2px solid var(--border);
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .lang-toggle:hover {
+      border-color: var(--blue);
+      background: #f8fafc;
+    }
+
+    .lang-toggle.active {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    /* Mesajlaşma Alanı */
     .messages-container {
       flex: 1;
       overflow-y: auto;
-      padding: 1.5rem 1rem 1.5rem;
-      max-width: 800px;
+      padding: 2rem 1.5rem;
+      max-width: 850px;
       margin: 0 auto;
       width: 100%;
-      min-height: 0;
-      overscroll-behavior-y: contain;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
     }
+
     .empty-state {
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       text-align: center;
-      padding: 2rem 1rem;
+      padding: 3rem 1rem;
+      font-weight: 500;
     }
+
     .message {
       display: flex;
-      margin-bottom: 1rem;
+      width: 100%;
     }
-    .message.user {
-      justify-content: flex-end;
-    }
+
+    .message.user { justify-content: flex-end; }
+
     .bubble {
-      max-width: 70%;
-      padding: 0.75rem 1rem;
-      border-radius: 12px;
-      border: 1px solid var(--border);
+      max-width: 80%;
+      padding: 1rem 1.25rem;
       font-size: 0.95rem;
       white-space: pre-wrap;
       word-break: break-word;
+      box-shadow: var(--shadow-sm);
     }
+
     .bubble.user {
       background: var(--user-bg);
+      color: var(--text-light);
+      border-radius: 18px 18px 4px 18px;
     }
+
     .bubble.assistant {
       background: var(--bot-bg);
+      color: var(--text);
+      border-radius: 18px 18px 18px 4px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--orange);
     }
+
+    /* Girdi / Yazma Alanı */
     .composer {
-      padding: 1rem;
-      background: var(--bg);
+      padding: 1.25rem;
+      background: var(--surface);
       border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+      z-index: 5;
     }
+
     form.compose {
       display: flex;
-      flex-direction: column;
+      align-items: flex-end;
       gap: 0.75rem;
-      max-width: 800px;
+      max-width: 850px;
       margin: 0 auto;
       width: 100%;
+      position: relative;
     }
+
     textarea {
-      width: 100%;
-      min-height: 4.5rem;
+      flex: 1;
+      min-height: 3.5rem;
+      max-height: 150px;
       resize: vertical;
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
       border: 1px solid var(--border);
-      background: var(--surface);
+      background: #f8fafc;
       color: var(--text);
       font-family: inherit;
       font-size: 0.95rem;
+      line-height: 1.5;
+      transition: all 0.2s ease;
     }
+
     textarea:focus {
       outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.25);
+      background: var(--surface);
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.1);
     }
+
     .actions {
       display: flex;
       gap: 0.5rem;
     }
+
     button[type="submit"] {
-      background: var(--accent);
-      color: #fff;
+      background: var(--orange);
+      color: var(--text-light);
       border: none;
-      padding: 0.55rem 1.15rem;
-      border-radius: 8px;
+      height: 3.5rem;
+      padding: 0 1.5rem;
+      border-radius: 12px;
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(242, 109, 33, 0.2);
     }
+
     button[type="submit"]:hover:not(:disabled) {
-      filter: brightness(1.08);
+      background: var(--orange-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(242, 109, 33, 0.3);
     }
+
     button[type="submit"]:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
+
     .error {
-      background: #f8d7da;
-      border: 1px solid #f5c6cb;
-      color: #721c24;
-      padding: 15px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 1rem;
       border-radius: 8px;
       font-size: 0.9rem;
-      margin: 10px 0;
+      margin: 0 auto 1rem;
+      max-width: 850px;
       display: flex;
       align-items: center;
+      gap: 0.5rem;
     }
-    .error::before {
-        content: "⚠️ ";
-        margin-right: 5px;
-    }
+
     .loading {
-      color: var(--muted);
-      font-style: italic;
+      color: var(--blue);
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
     }
+
+    .loading::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--orange);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     .visually-hidden {
       position: absolute;
       width: 1px;
@@ -177,29 +417,215 @@
 <body>
   <div class="container">
 
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-header" data-i18n="sidebarTitle">Geçmiş Sohbetler</div>
+        <div class="sidebar-content" id="conversationsList">
+          <p style="color: var(--muted); font-size: 0.85rem; padding: 1rem; text-align: center;" data-i18n="emptyChat">
+            Henüz sohbet yok.
+          </p>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn-new-chat" onclick="startNewChat()" data-i18n="newChat">+ Yeni Sohbet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Chat Area -->
     <div class="main-content">
       <div class="header">
-        <h1>ACUBOT</h1>
-        <p>Hello! Ask about Acibadem University.</p>
+        <button id="sidebarToggle" class="icon-btn" title="Geçmişi Gizle/Göster">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="header-text">
+          <h1>ACU<span>BOT</span></h1>
+          <p data-i18n="subtitle">Merhaba! Acıbadem Üniversitesi hakkında dilediğinizi sorabilirsiniz.</p>
+        </div>
+
+        <!-- Dil Değiştirme (Language Toggle) -->
+        <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">EN</button>
       </div>
+
       <div class="messages-container" id="messagesContainer"></div>
+
       <div class="composer">
         <form class="compose" onsubmit="sendMessage(event)">
-          <label for="message" class="visually-hidden">Your Question</label>
-          <textarea id="message" placeholder="e.g., What courses are there in the Computer Engineering department?" rows="3" autofocus></textarea>
+          <label for="message" class="visually-hidden">Sorunuz</label>
+          <textarea id="message" rows="1" autofocus></textarea>
           <div class="actions">
-            <button type="submit">Send</button>
+            <button type="submit" data-i18n="sendBtn">Gönder</button>
           </div>
         </form>
       </div>
     </div>
   </div>
+
   <script>
-    let chatHistory = [];
+    // --- ÇOKLU DİL (i18n) SÖZLÜĞÜ ---
+    const dict = {
+      tr: {
+        sidebarTitle: "Geçmiş Sohbetler",
+        emptyChat: "Henüz sohbet yok.",
+        newChat: "+ Yeni Sohbet",
+        subtitle: "Merhaba! Acıbadem Üniversitesi hakkında dilediğinizi sorabilirsiniz.",
+        placeholder: "Örn: Bilgisayar Mühendisliği bölümünde hangi dersler var?",
+        sendBtn: "Gönder",
+        loading: "ACUBOT düşünüyor",
+        errorMsg: "Bir hata oluştu:",
+        emptyPreview: "Boş sohbet",
+        timeJustNow: "Az önce",
+        timeMins: "d önce",
+        timeHours: "s önce",
+        timeDays: "g önce"
+      },
+      en: {
+        sidebarTitle: "Chat History",
+        emptyChat: "No conversations yet.",
+        newChat: "+ New Chat",
+        subtitle: "Hello! You can ask anything about Acıbadem University.",
+        placeholder: "e.g., What courses are there in Computer Engineering?",
+        sendBtn: "Send",
+        loading: "ACUBOT is thinking",
+        errorMsg: "An error occurred:",
+        emptyPreview: "Empty chat",
+        timeJustNow: "Just now",
+        timeMins: "m ago",
+        timeHours: "h ago",
+        timeDays: "d ago"
+      }
+    };
+
+    let currentLang = localStorage.getItem('acubot_lang') || 'tr';
+
+    function applyLanguage() {
+      // Data attribute'a sahip elemanları çevir
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = dict[currentLang][key];
+      });
+
+      // Textarea placeholder'ını çevir
+      document.getElementById('message').setAttribute('placeholder', dict[currentLang].placeholder);
+
+      // Üst sağdaki butonun metnini diğer dili işaret edecek şekilde değiştir
+      const btn = document.getElementById('langToggle');
+      btn.textContent = currentLang === 'tr' ? 'EN' : 'TR';
+
+      // Kayıtları yeniden yükle ki saat ve empty chat kısımları o dilde görünsün
+      loadConversations();
+    }
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'tr' ? 'en' : 'tr';
+      localStorage.setItem('acubot_lang', currentLang);
+      applyLanguage();
+    }
+
+    // --- SOHBET FONKSİYONLARI ---
+    let chatHistory =[];
+    let currentConversationId = null;
+    let isNewConversation = false;
     const apiBaseUrl = '/api/chat';
 
     function getCookie(n){let v=null;if(document.cookie&&document.cookie!==''){document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'=')){v=decodeURIComponent(c.substring(n.length+1));}});}return v;}
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      const d = dict[currentLang];
+      if (diffMins < 1) return d.timeJustNow;
+      if (diffMins < 60) return diffMins + d.timeMins;
+      if (diffHours < 24) return diffHours + d.timeHours;
+      if (diffDays < 7) return diffDays + d.timeDays;
+
+      return date.toLocaleDateString();
+    }
+
+    async function loadConversations() {
+      try {
+        const r = await fetch(`${apiBaseUrl}/conversations/`, { credentials: 'same-origin' });
+        if (!r || !r.ok) throw new Error('Failed to load conversations');
+
+        const conversations = await r.json();
+        const container = document.getElementById('conversationsList');
+
+        if (conversations.length === 0) {
+          container.innerHTML = `<p style="color: var(--muted); font-size: 0.85rem; padding: 1rem; text-align: center;">${dict[currentLang].emptyChat}</p>`;
+          return;
+        }
+
+        container.innerHTML = conversations.map(conv => `
+          <div class="conversation-item ${currentConversationId === conv.id ? 'active' : ''}" onclick="loadConversation(${conv.id})">
+            <div class="timestamp">${formatDate(conv.updated_at)}</div>
+            <div class="preview">${conv.first_message || dict[currentLang].emptyPreview}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading conversations:', err);
+      }
+    }
+
+    async function loadConversation(conversationId) {
+      try {
+        const r = await fetch(`${apiBaseUrl}/conversations/${conversationId}/`, { credentials: 'same-origin' });
+        if (!r || !r.ok) throw new Error('Failed to load conversation');
+
+        const conversation = await r.json();
+        currentConversationId = conversationId;
+        isNewConversation = false;
+
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
+
+        chatHistory =[];
+
+        conversation.messages.forEach(msg => {
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `message ${msg.role}`;
+          const bubble = document.createElement('div');
+          bubble.className = `bubble ${msg.role}`;
+          bubble.textContent = msg.text;
+          msgDiv.appendChild(bubble);
+          container.appendChild(msgDiv);
+
+          chatHistory.push({ role: msg.role, text: msg.text });
+        });
+
+        container.scrollTop = container.scrollHeight;
+
+        document.querySelectorAll('.conversation-item').forEach(item => {
+          item.classList.remove('active');
+          const handler = item.getAttribute('onclick') || '';
+          if (handler.includes('loadConversation(' + conversationId + ')')) {
+            item.classList.add('active');
+          }
+        });
+
+        loadConversations();
+      } catch (err) {
+        console.error('Error loading conversation:', err);
+      }
+    }
+
+    function startNewChat() {
+      chatHistory =[];
+      currentConversationId = null;
+      isNewConversation = true;
+      document.getElementById('messagesContainer').innerHTML = '';
+      document.getElementById('message').focus();
+      loadConversations();
+    }
 
     async function sendMessage(e){
       e.preventDefault();
@@ -207,12 +633,13 @@
       const b = e.target.querySelector('button[type="submit"]');
       const t = document.getElementById('message');
       const m = t.value.trim();
-      
+
       if(!m) return;
       t.value = '';
+      t.style.height = 'auto';
       b.disabled = true;
       if(c.innerHTML.includes('empty-state')){c.innerHTML='';}
-      
+
       const u = document.createElement('div');
       u.className = 'message user';
       const ub = document.createElement('div');
@@ -221,59 +648,118 @@
       u.appendChild(ub);
       c.appendChild(u);
       c.scrollTop = c.scrollHeight;
-      
+
       const l = document.createElement('div');
       l.className = 'message';
-      l.innerHTML = '<p class="loading">ACUBOT is thinking...</p>';
+      l.innerHTML = `<p class="loading">${dict[currentLang].loading}</p>`;
       c.appendChild(l);
       c.scrollTop = c.scrollHeight;
 
       try{
         const h = {'Content-Type':'application/json'};
         if(csrfToken) h['X-CSRFToken'] = csrfToken;
-        
-        const payload = { message: m, history: chatHistory };
-        
+
+        const payload = { message: m, history: chatHistory, new_conversation: isNewConversation };
+
         const r = await fetch(`${apiBaseUrl}/ask/`, {
           method: 'POST',
           headers: h,
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          credentials: 'same-origin'
         });
 
         if(!r||!r.ok){
           throw new Error('Network response was not ok');
         }
-        
-        const data = await r.json();
-        const botResponse = data.response;
-        
+
         l.className = 'message assistant';
         l.innerHTML = '';
         const lb = document.createElement('div');
         lb.className = 'bubble assistant';
-        lb.textContent = botResponse;
         l.appendChild(lb);
         c.scrollTop = c.scrollHeight;
-        
+
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let botResponse = '';
+        let buffer = '';
+
+        while(true) {
+            const {value, done} = await reader.read();
+            if(done) {
+                if (buffer.trim()) {
+                    try {
+                        const parsed = JSON.parse(buffer);
+                        if (parsed.type === "chunk") {
+                            botResponse += parsed.text;
+                        } else if (parsed.type === "done") {
+                            botResponse = parsed.text;
+                        }
+                        lb.textContent = botResponse;
+                    } catch(e) {
+                        console.warn("Tail parse skipped:", e, buffer);
+                    }
+                }
+                break;
+            }
+            buffer += decoder.decode(value, {stream: true});
+            let nl;
+            while ((nl = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, nl);
+                buffer = buffer.slice(nl + 1);
+                if (line.trim() === '') continue;
+                try {
+                    const parsed = JSON.parse(line);
+                    if (parsed.type === "chunk") {
+                        botResponse += parsed.text;
+                        lb.textContent = botResponse;
+                        c.scrollTop = c.scrollHeight;
+                    } else if (parsed.type === "done") {
+                        botResponse = parsed.text;
+                        lb.textContent = botResponse;
+                        c.scrollTop = c.scrollHeight;
+                    }
+                } catch(e) {
+                    console.warn("Parse skipped:", e, line);
+                }
+            }
+        }
+
         chatHistory.push({ role: 'user', text: m });
         chatHistory.push({ role: 'assistant', text: botResponse });
-        
+
         if (chatHistory.length > 50) {
             chatHistory = chatHistory.slice(-50);
         }
+
+        isNewConversation = false;
+        loadConversations();
 
       }catch(er){
         console.error('Error:',er);
         l.remove();
         const ed=document.createElement('div');
         ed.className='error';
-        ed.textContent='Error: '+er.message;
+        ed.innerHTML=`<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> ${dict[currentLang].errorMsg} ${er.message}`;
         c.appendChild(ed);
       }
       b.disabled=false;
     }
-    
+
     document.addEventListener('DOMContentLoaded',()=>{
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggle');
+
+      const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+      if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+      });
+
       const textarea = document.getElementById('message');
       textarea.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -281,6 +767,14 @@
           document.querySelector('form.compose').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
         }
       });
+
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+
+      // Dili uygula ve sohbetleri yükle
+      applyLanguage();
     });
   </script>
 </body>

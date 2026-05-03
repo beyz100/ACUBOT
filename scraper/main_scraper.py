@@ -29,14 +29,26 @@ def scrape_homepage():
     return data
 
 def scrape_contact():
-    # To maintain compatibility with seed.py, contact_info must be a dict
     data = {
         "contact_info": {
             "campus": "Kerem Aydınlar Kampüsü",
             "address": "Kayışdağı cad. No:32 Ataşehir/İstanbul",
             "phone": "+90 0216 500 44 44",
             "email": "info@acibadem.edu.tr",
-            "bilgisayar_muhendisligi_bolum_baskani": "Prof. Dr. Ahmet Bulut"
+            "bilgisayar_muhendisligi_bolum_baskani": "Prof. Dr. Ahmet Bulut",
+            "bilgisayar_muhendisligi_akademik_kadro": [
+                "Prof. Dr. Ahmet Bulut",
+                "Dr. Öğr. Üyesi Mehmet Serkan Apaydın",
+                "Öğr. Gör. Dr. Mahsa Zıraksıma",
+                "Öğr. Gör. Dr. Seda Nilgün Dumlu",
+                "Öğr. Gör. Dr. Sultan Sütlü",
+                "Öğr. Gör. Cengiz Riva",
+                "Arş. Gör. Gülnaz Yükselen",
+                "Arş. Gör. Seher Zeynep Sonkaya",
+                "Prof. Dr. Nurettin Cenk Turgay",
+                "Dr. Öğr. Üyesi Onur Güzey",
+                "Dr. Öğr. Üyesi Özgür Doğan Şahin"
+            ]
         }
     }
     return data

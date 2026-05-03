@@ -1,4 +1,3 @@
-"""LLM service — talks to Ollama, handles prompt engineering and language."""
 from __future__ import annotations
 
 import json
@@ -16,39 +15,27 @@ from courses.retrieval import format_for_llm, retrieve
 logger = logging.getLogger(__name__)
 
 
-# How many previous turns to include when building the prompt. Each "turn" is
-# one user/assistant exchange. The LLM sees at most HISTORY_TURNS pairs.
 HISTORY_TURNS = 4
 
 
 SYSTEM_PROMPTS = {
-    "tr": """Sen "ACUBOT"sun: Acıbadem Üniversitesi öğrencileri ve ziyaretçileri için soruları yanıtlayan bir asistansın.
+    "tr": """Sen "ACUBOT"sun: Acıbadem Üniversitesi için soruları yanıtlayan resmi bir yapay zeka asistanısın.
 
 KESİN KURALLAR:
-1. SADECE aşağıdaki "Bilgi Tabanı" bölümündeki bilgileri kullan. Kendi bilgini ya da varsayımlarını kullanma.
-2. Yanıtını TAMAMEN TÜRKÇE ver. Asla başka bir dile geçme.
-3. Bilgi tabanında cevap yoksa açıkça şunu söyle: "Bu konuda elimde bilgi yok; üniversitenin web sitesini kontrol etmenizi öneririm."
-4. Kullanıcı bir bölümün ya da fakültenin TÜM derslerini istediğinde, bilgi tabanındaki tüm dersleri TAM olarak listele; özet geçme, atlama yapma.
-5. Ders kodlarını, ECTS değerlerini ve isimleri bilgi tabanındaki haliyle aynen kullan.
-6. Yanıtların kısa, net ve madde işaretli olsun. Gereksiz girişlere ya da kapanışlara yer verme.
-7. Yorum, tahmin veya "bu ders şunu sağlar" gibi açıklama EKLEME. Sadece bilgi tabanındaki olguları aktar.
-8. Yanıtının başına ASLA "User:", "Assistant:", "Kullanıcı:", "Asistan:", "Bilgi Tabanı:" gibi etiketler koyma. Doğrudan cevapla.""",
-    "en": """You are "ACUBOT", an assistant that answers questions for Acıbadem University students and visitors.
+1. SADECE aşağıdaki "Bilgi Tabanı" metninde yer alan bilgileri kullanarak cevap ver. Kendi bilgini ekleme.
+2. Eğer kullanıcının sorduğu bölüm veya fakülte (örneğin Hukuk, Mimarlık, Diş Hekimliği vb.) Bilgi Tabanı'nda YOKSA, asla uydurma! Doğrudan şunu söyle: "Üniversitemizde bu bölüm/fakülte bulunmamaktadır."
+3. Diğer cevapsız konular için: "Bu konuda elimde bilgi yok, üniversitenin web sitesini kontrol edebilirsiniz." de.
+4. Cevapların tamamen Türkçe, net ve kısa olsun. Halüsinasyon (olmayan bir şeyi varmış gibi göstermek) KESİNLİKLE YASAKTIR.""",
+    "en": """You are "ACUBOT", the official AI assistant for Acıbadem University.
 
 STRICT RULES:
-1. Use ONLY the information in the "Knowledge Base" section below. Do not rely on outside knowledge or assumptions.
-2. Answer ENTIRELY in ENGLISH. Never switch languages, even though the source data is in Turkish — translate course names if helpful.
-3. If the knowledge base does not contain the answer, say plainly: "I don't have that information; please check the university's website."
-4. When asked for ALL courses of a department or faculty, list every entry from the knowledge base verbatim — do not summarise or skip rows.
-5. Preserve course codes, ECTS values, and original Turkish names exactly as shown in the knowledge base.
-6. Keep replies concise, clear, and use bullet points when listing items. Skip filler intros and outros.
-7. Do NOT add commentary, interpretations, or filler like "this course covers ..." — relay only the facts present in the knowledge base.
-8. NEVER prefix your reply with labels like "User:", "Assistant:", or "Knowledge Base:". Reply directly.""",
+1. Base your answer ONLY on the "Knowledge Base" text provided below. Do not use outside knowledge.
+2. If the department or faculty (e.g., Law, Architecture, Dentistry) asked by the user is NOT in the Knowledge Base, DO NOT hallucinate! Simply say: "We do not have this department/faculty at our university."
+3. For other unknown topics, say: "I don't have that information, please check the university's website."
+4. Answer entirely in English, keep it short and clear. Inventing facts is STRICTLY FORBIDDEN."""
 }
 
 
-# Prefixes the model occasionally echoes back from the chat scaffolding.
-# Stripped before the answer is shown to the user.
 _LABEL_RE = re.compile(
     r"^\s*(?:user|assistant|kullanıcı|kullanici|asistan|bilgi\s*tabanı|knowledge\s*base)\s*[:：]\s*",
     re.IGNORECASE,
@@ -78,22 +65,6 @@ def _has_following_assistant_label(lines: list[str], user_idx: int) -> bool:
 
 
 def _scrub_labels(text: str) -> str:
-    """Strip prompt-scaffolding leakage from the model's reply.
-
-    Smaller models leak labels in two distinct ways:
-
-      1. **Conversation echo** — the model parrots the entire turn:
-         ``User: <prior question>\\nAssistant: <answer>``.
-         In this case the User line is the user's question and must be
-         dropped entirely.
-      2. **Mislabeling** — the model just prefixes its own answer with the
-         wrong tag, e.g. ``User: +90 216 ...``.
-         In this case we must NOT drop the line; only the bogus prefix.
-
-    We disambiguate per user-labelled line: if a non-user label appears on a
-    later line, treat it as case (1) and drop the user line; otherwise treat
-    it as case (2) and keep the content after the label.
-    """
     lines = text.splitlines()
     out: list[str] = []
     for i, raw_line in enumerate(lines):
@@ -111,10 +82,8 @@ def _scrub_labels(text: str) -> str:
                 if _has_following_assistant_label(lines, i):
                     drop_line = True
                     break
-                # Mislabeling: peel off the prefix, keep the answer.
                 line = rest
                 continue
-            # Assistant / knowledge-base header — strip and keep going.
             line = rest
         if drop_line:
             continue
@@ -137,10 +106,6 @@ def _build_messages(
     history: list[tuple[str, str]],
     language: str,
 ) -> list[dict]:
-    """Build the structured message list expected by Ollama's /api/chat
-    endpoint. Using role-based messages lets the model rely on its own chat
-    template — so it never echoes labels like "User:" or "Assistant:" back
-    to the user."""
     if language == "tr":
         kb_header = "Bilgi Tabanı:"
     else:
@@ -162,24 +127,17 @@ def _ollama_options() -> dict:
     return {
         "temperature": 0.0,
         "top_p": 0.9,
-        # Context window kept small (4096) so 3B-class models stay snappy
-        # on CPU-only machines. Bump to 8192 if you switch to a larger
-        # model on a workstation with a GPU.
         "num_ctx": 4096,
-        # Up to ~50 course rows can need >1.5k tokens to render.
         "num_predict": 2048,
     }
 
 
 def _call_ollama(messages: list[dict]) -> tuple[str | None, str | None]:
-    """Return (text, error). Exactly one of them is None."""
     url = f"{settings.OLLAMA_URL.rstrip('/')}/api/chat"
     payload = {
         "model": settings.OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
-        # Keep the model in RAM between requests; without this Ollama unloads
-        # after 5 min of inactivity and the next call eats a 10–30 s reload.
         "keep_alive": settings.OLLAMA_KEEP_ALIVE,
         "options": _ollama_options(),
     }
@@ -245,13 +203,7 @@ def ask(
     user_message: str,
     history: list[tuple[str, str]] | None = None,
 ) -> LLMReply:
-    """Generate a reply for `user_message`.
-
-    `history` is a list of (role, content) tuples in chronological order. Only
-    the most recent HISTORY_TURNS exchanges are forwarded to the LLM.
-    """
     language = detect_language(user_message)
-
     result = retrieve(user_message)
     context_text = format_for_llm(result, language)
 
@@ -283,11 +235,6 @@ def ask_stream(
     user_message: str,
     history: list[tuple[str, str]] | None = None,
 ) -> Iterator[dict]:
-    """Stream a reply token-by-token. Yields dicts:
-        {"type": "chunk", "text": "..."}      — partial output
-        {"type": "done",  "text": "...full...", "language": ..., "context_size": ..., "error": bool}
-    Always finishes with exactly one "done" event.
-    """
     language = detect_language(user_message)
     result = retrieve(user_message)
     context_text = format_for_llm(result, language)
@@ -310,7 +257,7 @@ def ask_stream(
 
     chunks: list[str] = []
     error_code: str | None = None
-    label_scrubbed = False  # only scrub the very first user-visible chunk
+    label_scrubbed = False 
 
     try:
         with requests.post(
@@ -332,23 +279,18 @@ def ask_stream(
                     piece = obj.get("message", {}).get("content", "")
                     if piece:
                         chunks.append(piece)
-                        # Scrub leading labels on the first non-empty emit.
                         if not label_scrubbed:
                             joined = "".join(chunks)
                             cleaned = _scrub_labels(joined)
                             if cleaned != joined:
-                                # Re-seed chunks with the scrubbed text so
-                                # subsequent emissions don't re-introduce it.
                                 chunks = [cleaned]
                                 if cleaned:
                                     yield {"type": "chunk", "text": cleaned}
                                     label_scrubbed = True
                                 continue
-                            # Wait for more text before deciding.
                             if any(ch.isalpha() for ch in joined) and len(joined) >= 8:
                                 label_scrubbed = True
                                 yield {"type": "chunk", "text": piece}
-                            # else: still buffering, do not yield yet
                         else:
                             yield {"type": "chunk", "text": piece}
                     if obj.get("done"):
