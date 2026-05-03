@@ -1,4 +1,3 @@
-"""LLM service — talks to Ollama, handles prompt engineering and language."""
 from __future__ import annotations
 
 import json
@@ -20,32 +19,20 @@ HISTORY_TURNS = 4
 
 
 SYSTEM_PROMPTS = {
-    "tr": """Sen "ACUBOT"sun: Acıbadem Üniversitesi öğrencileri ve ziyaretçileri için soruları yanıtlayan bir asistansın.
+    "tr": """Sen "ACUBOT"sun: Acıbadem Üniversitesi için soruları yanıtlayan resmi bir yapay zeka asistanısın.
 
 KESİN KURALLAR:
-1. SADECE aşağıdaki "Bilgi Tabanı" bölümündeki bilgileri kullan. Kendi bilgini ya da varsayımlarını kullanma.
-2. Yanıtını TAMAMEN TÜRKÇE ver. Asla başka bir dile geçme.
-3. Bilgi tabanında cevap yoksa açıkça şunu söyle: "Bu konuda elimde bilgi yok; üniversitenin web sitesini kontrol etmenizi öneririm."
-4. Kullanıcı bir bölümün ya da fakültenin TÜM derslerini istediğinde, bilgi tabanındaki tüm dersleri TAM olarak listele; özet geçme, atlama yapma.
-5. Ders kodlarını, ECTS değerlerini ve isimleri bilgi tabanındaki haliyle aynen kullan.
-6. Yanıtların kısa, net ve madde işaretli olsun. Gereksiz girişlere ya da kapanışlara yer verme.
-7. Yorum, tahmin veya "bu ders şunu sağlar" gibi açıklama EKLEME. Sadece bilgi tabanındaki olguları aktar.
-8. Yanıtının başına ASLA "User:", "Assistant:", "Kullanıcı:", "Asistan:", "Bilgi Tabanı:" gibi etiketler koyma. Doğrudan cevapla.
-9. Bölüm, fakülte ve ders isimlerini bilgi tabanında yazıldığı şekilde HARF HARF AYNEN yaz; harf düşürme/ekleme/değiştirme yapma. Örneğin "İnsan ve Toplum Bilimleri Fakültesi" yerine "İnsa ve Toplum Bilimleri" yazma; "Bilgisayar Mühendisliği" yerine "Bilgisayar Müh." yazma. Aynı ismi listede iki kez tekrarlama.
-10. ASLA uydurma isimler (örn: [Adı], [Name], "Doç. Dr.") veya varsayımsal bilgiler ekleme. Bilgi tabanında bir liste eksikse (örneğin sadece Bölüm Başkanı var ama tüm akademik kadro soruluyorsa), SADECE elindeki bilgiyi ver ve eksik kısımlar için "Diğer akademik kadro hakkında elimde bilgi yok." şeklinde belirt.""",
-    "en": """You are "ACUBOT", an assistant that answers questions for Acıbadem University students and visitors.
+1. SADECE aşağıdaki "Bilgi Tabanı" metninde yer alan bilgileri kullanarak cevap ver. Kendi bilgini ekleme.
+2. Eğer kullanıcının sorduğu bölüm veya fakülte (örneğin Hukuk, Mimarlık, Diş Hekimliği vb.) Bilgi Tabanı'nda YOKSA, asla uydurma! Doğrudan şunu söyle: "Üniversitemizde bu bölüm/fakülte bulunmamaktadır."
+3. Diğer cevapsız konular için: "Bu konuda elimde bilgi yok, üniversitenin web sitesini kontrol edebilirsiniz." de.
+4. Cevapların tamamen Türkçe, net ve kısa olsun. Halüsinasyon (olmayan bir şeyi varmış gibi göstermek) KESİNLİKLE YASAKTIR.""",
+    "en": """You are "ACUBOT", the official AI assistant for Acıbadem University.
 
 STRICT RULES:
-1. Use ONLY the information in the "Knowledge Base" section below. Do not rely on outside knowledge or assumptions.
-2. Answer ENTIRELY in ENGLISH. Never switch languages, even though the source data is in Turkish — translate course names if helpful.
-3. If the knowledge base does not contain the answer, say plainly: "I don't have that information; please check the university's website."
-4. When asked for ALL courses of a department or faculty, list every entry from the knowledge base verbatim — do not summarise or skip rows.
-5. Preserve course codes, ECTS values, and original Turkish names exactly as shown in the knowledge base.
-6. Keep replies concise, clear, and use bullet points when listing items. Skip filler intros and outros.
-7. Do NOT add commentary, interpretations, or filler like "this course covers ..." — relay only the facts present in the knowledge base.
-8. NEVER prefix your reply with labels like "User:", "Assistant:", or "Knowledge Base:". Reply directly.
-9. Copy department, faculty and course names from the knowledge base LETTER FOR LETTER; do not drop, add, or change a single character. For example, never shorten "İnsan ve Toplum Bilimleri Fakültesi" to "İnsa ve Toplum Bilimleri", and never abbreviate "Bilgisayar Mühendisliği" to "Bilgisayar Eng.". Never list the same name twice.
-10. NEVER invent names (e.g., [Name], [Adı]) or hypothetical information. If the knowledge base only has partial information (e.g., only the Department Head when asked for the full academic staff), state ONLY what you have and add "I don't have information about the rest of the staff." Do not hallucinate to complete a list.""",
+1. Base your answer ONLY on the "Knowledge Base" text provided below. Do not use outside knowledge.
+2. If the department or faculty (e.g., Law, Architecture, Dentistry) asked by the user is NOT in the Knowledge Base, DO NOT hallucinate! Simply say: "We do not have this department/faculty at our university."
+3. For other unknown topics, say: "I don't have that information, please check the university's website."
+4. Answer entirely in English, keep it short and clear. Inventing facts is STRICTLY FORBIDDEN."""
 }
 
 
@@ -78,22 +65,6 @@ def _has_following_assistant_label(lines: list[str], user_idx: int) -> bool:
 
 
 def _scrub_labels(text: str) -> str:
-    """Strip prompt-scaffolding leakage from the model's reply.
-
-    Smaller models leak labels in two distinct ways:
-
-      1. **Conversation echo** — the model parrots the entire turn:
-         ``User: <prior question>\\nAssistant: <answer>``.
-         In this case the User line is the user's question and must be
-         dropped entirely.
-      2. **Mislabeling** — the model just prefixes its own answer with the
-         wrong tag, e.g. ``User: +90 216 ...``.
-         In this case we must NOT drop the line; only the bogus prefix.
-
-    We disambiguate per user-labelled line: if a non-user label appears on a
-    later line, treat it as case (1) and drop the user line; otherwise treat
-    it as case (2) and keep the content after the label.
-    """
     lines = text.splitlines()
     out: list[str] = []
     for i, raw_line in enumerate(lines):
@@ -135,10 +106,6 @@ def _build_messages(
     history: list[tuple[str, str]],
     language: str,
 ) -> list[dict]:
-    """Build the structured message list expected by Ollama's /api/chat
-    endpoint. Using role-based messages lets the model rely on its own chat
-    template — so it never echoes labels like "User:" or "Assistant:" back
-    to the user."""
     if language == "tr":
         kb_header = "Bilgi Tabanı:"
     else:
@@ -166,7 +133,6 @@ def _ollama_options() -> dict:
 
 
 def _call_ollama(messages: list[dict]) -> tuple[str | None, str | None]:
-    """Return (text, error). Exactly one of them is None."""
     url = f"{settings.OLLAMA_URL.rstrip('/')}/api/chat"
     payload = {
         "model": settings.OLLAMA_MODEL,
@@ -237,11 +203,6 @@ def ask(
     user_message: str,
     history: list[tuple[str, str]] | None = None,
 ) -> LLMReply:
-    """Generate a reply for `user_message`.
-
-    `history` is a list of (role, content) tuples in chronological order. Only
-    the most recent HISTORY_TURNS exchanges are forwarded to the LLM.
-    """
     language = detect_language(user_message)
     result = retrieve(user_message)
     context_text = format_for_llm(result, language)
@@ -274,11 +235,6 @@ def ask_stream(
     user_message: str,
     history: list[tuple[str, str]] | None = None,
 ) -> Iterator[dict]:
-    """Stream a reply token-by-token. Yields dicts:
-        {"type": "chunk", "text": "..."}      — partial output
-        {"type": "done",  "text": "...full...", "language": ..., "context_size": ..., "error": bool}
-    Always finishes with exactly one "done" event.
-    """
     language = detect_language(user_message)
     result = retrieve(user_message)
     context_text = format_for_llm(result, language)

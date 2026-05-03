@@ -16,7 +16,6 @@ MAX_CHAT_TURNS = 25
 
 
 def _get_or_create_conversation(request):
-    """Get existing conversation from session or create a new one."""
     if not request.session.session_key:
         request.session.create()
 
@@ -35,7 +34,6 @@ def _get_or_create_conversation(request):
 
 
 def _save_messages_to_db(conversation, user_text, bot_text):
-    """Persist a user+assistant message pair to PostgreSQL."""
     ChatMessage.objects.create(
         conversation=conversation, role='user', text=user_text
     )
@@ -46,8 +44,6 @@ def _save_messages_to_db(conversation, user_text, bot_text):
 
 
 def _history_for_llm(history):
-    """Convert the [{role, text}] session list into the (role, content)
-    tuples expected by chatbot.services.ask()."""
     return [(item["role"], item["text"]) for item in history if "role" in item]
 
 
@@ -56,7 +52,6 @@ def _history_for_llm(history):
 def chat_ui(request):
     if request.method == "POST" and request.POST.get("clear_history"):
         request.session[CHAT_HISTORY_SESSION_KEY] = []
-        # Start a fresh conversation for the next messages
         request.session.pop(CONVERSATION_ID_SESSION_KEY, None)
         request.session.modified = True
         return redirect(reverse("acubot_chat"))
@@ -80,7 +75,6 @@ def chat_ui(request):
             request.session[CHAT_HISTORY_SESSION_KEY] = history
             request.session.modified = True
 
-            # --- Persist to PostgreSQL ---
             conversation = _get_or_create_conversation(request)
             _save_messages_to_db(conversation, message, reply.text)
 
@@ -96,9 +90,6 @@ def chat_ui(request):
 
 @api_view(['POST'])
 def quick_ask(request):
-    """Stateless one-shot endpoint required by the assignment spec
-    (POST /api/chat/). Does not persist to the database, useful for curl
-    smoke tests and external integrations."""
     user_message = (request.data.get('message') or '').strip()
     if not user_message:
         return Response(
@@ -119,7 +110,6 @@ def quick_ask(request):
 
 @api_view(['POST'])
 def chat_with_acubot(request):
-    """Stateful chat endpoint that records the conversation to PostgreSQL."""
     user_message = (request.data.get('message') or '').strip()
     client_history = request.data.get('history', [])
     new_conversation_raw = request.data.get('new_conversation', False)
@@ -136,10 +126,6 @@ def chat_with_acubot(request):
             del request.session[CONVERSATION_ID_SESSION_KEY]
         request.session.modified = True
 
-    # Prefer history sent by the client; otherwise rebuild it from the DB.
-    # We MUST call _get_or_create_conversation synchronously before returning the
-    # StreamingHttpResponse so that Django's SessionMiddleware sees the session
-    # as modified and saves it (sending the Set-Cookie header).
     conversation = _get_or_create_conversation(request)
 
     if client_history:
@@ -174,7 +160,6 @@ def chat_with_acubot(request):
 
 @api_view(['GET'])
 def list_conversations(request):
-    """List all conversations for the current session."""
     if not request.session.session_key:
         request.session.create()
 
@@ -189,7 +174,6 @@ def list_conversations(request):
 
 @api_view(['GET'])
 def get_conversation(request, conversation_id):
-    """Retrieve a single conversation with all its messages."""
     if not request.session.session_key:
         request.session.create()
 

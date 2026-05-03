@@ -1,15 +1,3 @@
-"""Hybrid retrieval over the knowledge base.
-
-Strategy:
-    1. Detect whether the user mentioned a specific department / faculty.
-       If yes, restrict the candidate pool to that department but STILL apply
-       any extra topical filter ("web", "math", ...) — previously a department
-       match would short-circuit any further topic filtering.
-    2. Run two parallel searches (full-text + trigram) and merge by score.
-    3. Look up `UniversityInfo` rows using both trigram similarity and a
-       category hint derived from intent words ("contact", "admission", ...)
-       so that "telefon numarası" reliably matches `category='contact'`.
-"""
 from __future__ import annotations
 
 import logging
@@ -30,10 +18,6 @@ from .models import Course, Department, Faculty, UniversityInfo
 logger = logging.getLogger(__name__)
 
 
-# Maps intent words found in the user's question to the UniversityInfo
-# category that almost certainly contains the answer. This is a deterministic
-# fallback for cases where trigram similarity is too weak (e.g. "telefon"
-# vs. key="phone").
 INTENT_TO_INFO_CATEGORY: dict[str, str] = {
     "telefon": "contact", "tel": "contact", "phone": "contact", "telephone": "contact",
     "eposta": "contact", "e-posta": "contact", "email": "contact", "mail": "contact",
@@ -82,12 +66,6 @@ class RetrievalResult:
 
 
 def _best_token_window(query: str, name: str) -> str:
-    """Return the contiguous token window of `query` that best matches `name`.
-
-    Long user sentences dilute trigram similarity against short entity names.
-    Sliding a window the size of `name`'s token count over the query and
-    keeping the highest-overlap span makes detection robust to extra words.
-    """
     name_tokens = name.lower().split()
     q_tokens = query.split()
     if len(q_tokens) <= len(name_tokens):
@@ -105,9 +83,6 @@ def _best_token_window(query: str, name: str) -> str:
 
 
 def _detect_department(query: str) -> Department | None:
-    """Return the Department whose name is the closest trigram match to the
-    query, scoring against the best-matching token window so long sentences
-    do not dilute the similarity below the threshold."""
     if not query.strip():
         return None
     best: tuple[float, Department] | None = None
@@ -142,13 +117,10 @@ def _detect_faculty(query: str) -> Faculty | None:
 
 
 def _residual_query(query: str, dept: Department | None, fac: Faculty | None) -> str:
-    """Strip the matched department / faculty name from the query so the
-    remaining tokens can be used for topical filtering."""
     residual = query
     for entity in (dept, fac):
         if not entity:
             continue
-        # Remove the full name and each word longer than 3 chars.
         residual = re.sub(re.escape(entity.name), " ", residual, flags=re.IGNORECASE)
         for token in entity.name.split():
             if len(token) > 3:
@@ -189,7 +161,6 @@ def _course_trigram(query: str, base_qs, limit: int) -> list[Course]:
 def _merge_courses(
     primary: list[Course], secondary: list[Course], limit: int
 ) -> list[Course]:
-    """Score-merge two ranked course lists, keeping primary order as tie-break."""
     score: dict[int, float] = {}
     rank_a: dict[int, int] = {c.id: i for i, c in enumerate(primary)}
     rank_b: dict[int, int] = {c.id: i for i, c in enumerate(secondary)}
@@ -224,14 +195,7 @@ _FALL_WORDS = {"güz", "guz", "fall"}
 _SPRING_WORDS = {"bahar", "spring"}
 _FIRST_YEAR_WORDS = {"birinci sınıf", "1. sınıf", "first year", "1st year"}
 
-# Words that, on their own, do NOT indicate the user is asking for a specific
-# topic — they are filler around the real intent ("hangi dersler var",
-# "bölümündeki tüm dersleri", "courses are there", ...). When the residual
-# query (after stripping the matched department/faculty name) contains only
-# these tokens, the search treats it as "list everything in this scope"
-# instead of running a topical filter that would return zero rows.
 _TOPIC_FILLER_WORDS: set[str] = {
-    # course/department vocab
     "ders", "dersi", "dersler", "dersleri",
     "course", "courses", "class", "classes",
     "bölüm", "bölümü", "bölümünde", "bölümündeki", "bölümleri",
@@ -240,21 +204,15 @@ _TOPIC_FILLER_WORDS: set[str] = {
     "faculty", "faculties",
     "müfredat", "müfredatı", "curriculum", "katalog", "kataloğu",
     "program", "programı", "programları",
-    # quantifiers / scope words
     "tüm", "bütün", "hepsi", "all", "every", "any",
     "list", "show", "give", "tell",
-    # generic interrogatives
     "neler", "ne", "nedir", "hangi", "kaç", "what", "which", "are", "is", "there",
-    # filler / connectives
     "var", "mı", "mi", "mu", "mü", "ile", "için",
     "the", "a", "an", "of", "in", "at", "on", "to",
 }
 
 
 def _detect_semesters(query: str) -> set[int] | None:
-    """Return the set of semester numbers the user is asking about, or None
-    if no semester hint is present. Supports '1. yarıyıl', 'semester 2',
-    'birinci sınıf güz' (= 1), 'birinci sınıf' (= 1 and 2), etc."""
     lower = query.lower()
     found: set[int] = set()
     for pattern, conv in _SEMESTER_PATTERNS:
@@ -289,15 +247,12 @@ def _retrieve_courses(
     faculty: Faculty | None,
     limit: int,
 ) -> list[Course]:
-    """Find the courses most relevant to the query, optionally pre-filtered to
-    a department or faculty. Excludes electives and internships."""
     base = Course.objects.select_related("department__faculty")
     if department is not None:
         base = base.filter(department=department)
     elif faculty is not None:
         base = base.filter(department__faculty=faculty)
 
-    # Filter out non-course entries (electives, internships, etc.)
     exclude_keywords = [
         'seçmeli', 'secmeli', 'elective',
         'staj', 'internship',
@@ -315,16 +270,10 @@ def _retrieve_courses(
 
     expanded = expand_query(query)
     residual = _residual_query(query, department, faculty)
-    # Detect whether the residual is just filler ("bölümündeki dersler", "tüm
-    # dersleri neler", ...) — in which case the user is really asking for the
-    # whole catalogue and we should not run a topical filter that would
-    # silently return zero rows.
     residual_tokens = set(re.findall(r"\w+", residual.lower()))
     non_filler = residual_tokens - _TOPIC_FILLER_WORDS
     has_topical = bool(non_filler)
 
-    # If the user is asking *exclusively* about a department's catalogue and
-    # gave no topical hint, return the entire catalogue ordered by code.
     if (department is not None or faculty is not None) and not has_topical:
         return list(base.order_by("semester", "code")[:limit])
     if semesters is not None:
@@ -335,9 +284,6 @@ def _retrieve_courses(
     trigram = _course_trigram(residual or query, base, limit * 2)
     merged = _merge_courses(full_text, trigram, limit)
 
-    # Department/faculty was matched but the topical filter found nothing —
-    # fall back to the whole department catalogue so the LLM still has data
-    # to ground its answer in (instead of hallucinating from an empty list).
     if not merged and (department is not None or faculty is not None):
         return list(base.order_by("semester", "code")[:limit])
     return merged
@@ -348,16 +294,12 @@ def _retrieve_university_info(query: str, limit: int) -> list[UniversityInfo]:
         return []
     expanded = expand_query(query)
 
-    # 1) Intent-based exact category match — most reliable for "phone", etc.
     lower = query.lower()
     intent_categories = {
         cat for word, cat in INTENT_TO_INFO_CATEGORY.items() if word in lower
     }
     intent_matches: list[UniversityInfo] = []
     if intent_categories:
-        # Score each row by how many intent words appear in its key/keywords —
-        # this surfaces "scholarship" for "burs" instead of letting alphabetic
-        # ordering bury it behind unrelated rows in the same category.
         intent_words = {
             word for word in INTENT_TO_INFO_CATEGORY if word in lower
         }
@@ -371,7 +313,6 @@ def _retrieve_university_info(query: str, limit: int) -> list[UniversityInfo]:
         scored.sort(key=lambda t: (-t[0], t[1].key))
         intent_matches = [info for _, info in scored]
 
-    # 2) Fuzzy match against key / value / keywords using trigram similarity.
     fuzzy_matches = list(
         UniversityInfo.objects.annotate(
             key_sim=TrigramSimilarity("key", expanded),
@@ -382,7 +323,6 @@ def _retrieve_university_info(query: str, limit: int) -> list[UniversityInfo]:
         .order_by("-key_sim", "-kw_sim", "-val_sim")[: limit * 2]
     )
 
-    # Merge, preferring intent matches first, then fuzzy.
     seen: set[int] = set()
     merged: list[UniversityInfo] = []
     for info in intent_matches + fuzzy_matches:
@@ -431,41 +371,27 @@ def _retrieve_faculties(query: str, limit: int) -> list[Faculty]:
 _LIST_ALL_FACULTY_HINTS = {
     "faculty", "faculties",
     "fakülte", "fakülteler", "fakülteleri",
-    "fakulte", "fakulteler", "fakulteleri",  # ASCII fallbacks
+    "fakulte", "fakulteler", "fakulteleri",
 }
 _LIST_ALL_DEPARTMENT_HINTS = {
     "department", "departments",
     "bölüm", "bölümler", "bölümleri",
-    "bolum", "bolumler", "bolumleri",  # ASCII fallbacks
+    "bolum", "bolumler", "bolumleri",
     "program", "programs", "programlar", "programları", "programlari",
 }
 
 
 def _wants_full_list(query: str, hints: set[str]) -> bool:
-    """Heuristic: did the user ask for *all* of an entity type?"""
     lower = query.lower()
     return any(h in lower for h in hints)
 
 
 def retrieve(query: str) -> RetrievalResult:
-    """Top-level entry point used by the chat service."""
     department = _detect_department(query)
     faculty = _detect_faculty(query) if department is None else department.faculty
 
-    # Limits are intentionally modest so the prompt stays inside the LLM's
-    # context window (~4096 tokens for the default 3B model). When the user
-    # asks for "all courses of department X" the department-scoping branch
-    # already returns the full catalogue, so this cap rarely bites.
     courses = _retrieve_courses(query, department, faculty, limit=150)
 
-    # When the user asks "what faculties" / "list all faculties" we cannot
-    # rely on trigram similarity (the literal word "faculties" doesn't match
-    # the Turkish faculty names). In that case return EVERY faculty — there
-    # are only ~10 rows so the context cost is negligible.
-    #
-    # We deliberately skip the "list all" expansion when a specific
-    # department or faculty was already detected — the user is scoping
-    # ("Bilgisayar Mühendisliği bölümündeki ..."), not browsing.
     if faculty is None and _wants_full_list(query, _LIST_ALL_FACULTY_HINTS):
         faculties = list(Faculty.objects.order_by("name"))
     elif faculty is None:
@@ -505,16 +431,12 @@ def retrieve(query: str) -> RetrievalResult:
 
 
 def format_for_llm(result: RetrievalResult, language: str) -> str:
-    """Format retrieval output as plain text the LLM can read.
-
-    The output is bilingual-friendly: course rows show the original Turkish
-    name plus the English name in parentheses when available, so the model
-    can answer in either language without losing fidelity.
-    """
     if result.is_empty():
         if language == "tr":
-            return "(Bilgi tabanı bu soru için ilgili bir kayıt döndürmedi.)"
-        return "(The knowledge base returned no relevant entries for this query.)"
+            return "BİLGİ TABANI BOŞ. (DİKKAT: Kullanıcıya SADECE şu cümleyi kur: 'Üniversitemizde bu bölüm/fakülte bulunmamaktadır veya bu konuda elimde bilgi yok. Web sitemizi kontrol edebilirsiniz.')"
+        return "KNOWLEDGE BASE IS EMPTY. (WARNING: Tell the user ONLY this: 'We do not have this department/faculty, or I don't have that information. Please check our website.')"
+
+
 
     blocks: list[str] = []
 
@@ -558,12 +480,9 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
 
     if result.courses:
         rows = []
-        # Group courses by base name (e.g., "Matematik" for "Matematik 1"/"Matematik 2")
-        # Also match by code similarity (MAT101/MAT102, MAT201/MAT202, etc.)
         course_groups: dict[str, list[tuple[int, Course]]] = {}
 
         for c in result.courses:
-            # Try to extract part number from name (e.g., "Matematik 1" → "Matematik", 1)
             name_match = re.match(r'^(.+?)\s+([12])$', c.name.strip())
             if name_match:
                 base_name = name_match.group(1)
@@ -576,26 +495,21 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
                 course_groups[base_name] = []
             course_groups[base_name].append((part_num, c))
 
-        # Format rows: merge paired courses (1+2), keep singles
         for base_name in sorted(course_groups.keys()):
             group = course_groups[base_name]
 
-            # Check if we have both part 1 and 2
             has_part_1 = any(p == 1 for p, _ in group)
             has_part_2 = any(p == 2 for p, _ in group)
 
             if len(group) == 2 and has_part_1 and has_part_2:
-                # Both parts 1 and 2 exist — merge them
                 c1 = next(c for p, c in group if p == 1)
                 c2 = next(c for p, c in group if p == 2)
 
-                # Show as "Code: Name 1-2"
                 row = f"- {c1.code}/{c2.code} {base_name} 1-2"
                 if c1.name_en or c2.name_en:
                     en_name = c1.name_en or c2.name_en
                     row += f" / {en_name}"
 
-                # Use ECTS from part 1 (or combine if different)
                 ects_str = f"{c1.ects}" if c1.ects else ""
                 if c2.ects and c1.ects and c1.ects != c2.ects:
                     ects_str = f"{c1.ects}+{c2.ects}"
@@ -609,7 +523,6 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
                 row += f" ({', '.join(extras)})"
                 rows.append(row)
             else:
-                # Single course or no pairing - list each separately
                 for part_num, c in sorted(group, key=lambda x: x[0] if x[0] > 0 else 999):
                     row = f"- {c.code} {c.name}"
                     if c.name_en:

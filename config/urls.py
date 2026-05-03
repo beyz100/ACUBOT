@@ -18,11 +18,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
+from chatbot.views import chat_ui
+
 
 urlpatterns = [
     path("", RedirectView.as_view(url="/chat/", permanent=False)),
     path("admin/", admin.site.urls),
     path("api/", include("courses.urls")),
     path("api/chat/", include("chatbot.urls")),
-    path("chat/", include("chatbot.web_urls")),
+    path("chat/", chat_ui, name="acubot_chat"),
 ]
