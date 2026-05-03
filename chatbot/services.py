@@ -16,8 +16,6 @@ from courses.retrieval import format_for_llm, retrieve
 logger = logging.getLogger(__name__)
 
 
-# How many previous turns to include when building the prompt. Each "turn" is
-# one user/assistant exchange. The LLM sees at most HISTORY_TURNS pairs.
 HISTORY_TURNS = 4
 
 
@@ -33,7 +31,8 @@ KESİN KURALLAR:
 6. Yanıtların kısa, net ve madde işaretli olsun. Gereksiz girişlere ya da kapanışlara yer verme.
 7. Yorum, tahmin veya "bu ders şunu sağlar" gibi açıklama EKLEME. Sadece bilgi tabanındaki olguları aktar.
 8. Yanıtının başına ASLA "User:", "Assistant:", "Kullanıcı:", "Asistan:", "Bilgi Tabanı:" gibi etiketler koyma. Doğrudan cevapla.
-9. Bölüm, fakülte ve ders isimlerini bilgi tabanında yazıldığı şekilde HARF HARF AYNEN yaz; harf düşürme/ekleme/değiştirme yapma. Örneğin "İnsan ve Toplum Bilimleri Fakültesi" yerine "İnsa ve Toplum Bilimleri" yazma; "Bilgisayar Mühendisliği" yerine "Bilgisayar Müh." yazma. Aynı ismi listede iki kez tekrarlama.""",
+9. Bölüm, fakülte ve ders isimlerini bilgi tabanında yazıldığı şekilde HARF HARF AYNEN yaz; harf düşürme/ekleme/değiştirme yapma. Örneğin "İnsan ve Toplum Bilimleri Fakültesi" yerine "İnsa ve Toplum Bilimleri" yazma; "Bilgisayar Mühendisliği" yerine "Bilgisayar Müh." yazma. Aynı ismi listede iki kez tekrarlama.
+10. ASLA uydurma isimler (örn: [Adı], [Name], "Doç. Dr.") veya varsayımsal bilgiler ekleme. Bilgi tabanında bir liste eksikse (örneğin sadece Bölüm Başkanı var ama tüm akademik kadro soruluyorsa), SADECE elindeki bilgiyi ver ve eksik kısımlar için "Diğer akademik kadro hakkında elimde bilgi yok." şeklinde belirt.""",
     "en": """You are "ACUBOT", an assistant that answers questions for Acıbadem University students and visitors.
 
 STRICT RULES:
@@ -45,12 +44,11 @@ STRICT RULES:
 6. Keep replies concise, clear, and use bullet points when listing items. Skip filler intros and outros.
 7. Do NOT add commentary, interpretations, or filler like "this course covers ..." — relay only the facts present in the knowledge base.
 8. NEVER prefix your reply with labels like "User:", "Assistant:", or "Knowledge Base:". Reply directly.
-9. Copy department, faculty and course names from the knowledge base LETTER FOR LETTER; do not drop, add, or change a single character. For example, never shorten "İnsan ve Toplum Bilimleri Fakültesi" to "İnsa ve Toplum Bilimleri", and never abbreviate "Bilgisayar Mühendisliği" to "Bilgisayar Eng.". Never list the same name twice.""",
+9. Copy department, faculty and course names from the knowledge base LETTER FOR LETTER; do not drop, add, or change a single character. For example, never shorten "İnsan ve Toplum Bilimleri Fakültesi" to "İnsa ve Toplum Bilimleri", and never abbreviate "Bilgisayar Mühendisliği" to "Bilgisayar Eng.". Never list the same name twice.
+10. NEVER invent names (e.g., [Name], [Adı]) or hypothetical information. If the knowledge base only has partial information (e.g., only the Department Head when asked for the full academic staff), state ONLY what you have and add "I don't have information about the rest of the staff." Do not hallucinate to complete a list.""",
 }
 
 
-# Prefixes the model occasionally echoes back from the chat scaffolding.
-# Stripped before the answer is shown to the user.
 _LABEL_RE = re.compile(
     r"^\s*(?:user|assistant|kullanıcı|kullanici|asistan|bilgi\s*tabanı|knowledge\s*base)\s*[:：]\s*",
     re.IGNORECASE,
@@ -113,10 +111,8 @@ def _scrub_labels(text: str) -> str:
                 if _has_following_assistant_label(lines, i):
                     drop_line = True
                     break
-                # Mislabeling: peel off the prefix, keep the answer.
                 line = rest
                 continue
-            # Assistant / knowledge-base header — strip and keep going.
             line = rest
         if drop_line:
             continue
@@ -164,11 +160,7 @@ def _ollama_options() -> dict:
     return {
         "temperature": 0.0,
         "top_p": 0.9,
-        # Context window kept small (4096) so 3B-class models stay snappy
-        # on CPU-only machines. Bump to 8192 if you switch to a larger
-        # model on a workstation with a GPU.
         "num_ctx": 4096,
-        # Up to ~50 course rows can need >1.5k tokens to render.
         "num_predict": 2048,
     }
 
@@ -180,8 +172,6 @@ def _call_ollama(messages: list[dict]) -> tuple[str | None, str | None]:
         "model": settings.OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
-        # Keep the model in RAM between requests; without this Ollama unloads
-        # after 5 min of inactivity and the next call eats a 10–30 s reload.
         "keep_alive": settings.OLLAMA_KEEP_ALIVE,
         "options": _ollama_options(),
     }
@@ -253,7 +243,6 @@ def ask(
     the most recent HISTORY_TURNS exchanges are forwarded to the LLM.
     """
     language = detect_language(user_message)
-
     result = retrieve(user_message)
     context_text = format_for_llm(result, language)
 
@@ -312,7 +301,7 @@ def ask_stream(
 
     chunks: list[str] = []
     error_code: str | None = None
-    label_scrubbed = False  # only scrub the very first user-visible chunk
+    label_scrubbed = False 
 
     try:
         with requests.post(
@@ -334,23 +323,18 @@ def ask_stream(
                     piece = obj.get("message", {}).get("content", "")
                     if piece:
                         chunks.append(piece)
-                        # Scrub leading labels on the first non-empty emit.
                         if not label_scrubbed:
                             joined = "".join(chunks)
                             cleaned = _scrub_labels(joined)
                             if cleaned != joined:
-                                # Re-seed chunks with the scrubbed text so
-                                # subsequent emissions don't re-introduce it.
                                 chunks = [cleaned]
                                 if cleaned:
                                     yield {"type": "chunk", "text": cleaned}
                                     label_scrubbed = True
                                 continue
-                            # Wait for more text before deciding.
                             if any(ch.isalpha() for ch in joined) and len(joined) >= 8:
                                 label_scrubbed = True
                                 yield {"type": "chunk", "text": piece}
-                            # else: still buffering, do not yield yet
                         else:
                             yield {"type": "chunk", "text": piece}
                     if obj.get("done"):

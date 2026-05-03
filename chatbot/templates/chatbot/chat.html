@@ -32,6 +32,104 @@
       background: var(--border);
     }
 
+    .sidebar {
+      width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      transition: width 0.3s ease, border-color 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      border-right-color: transparent;
+    }
+
+    .sidebar-inner {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .sidebar-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+
+    .conversation-item {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--bg);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid var(--border);
+    }
+
+    .conversation-item:hover {
+      background: var(--border);
+      border-color: var(--accent);
+    }
+
+    .conversation-item.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .conversation-item .timestamp {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .conversation-item.active .timestamp {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .conversation-item .preview {
+      font-size: 0.85rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.3;
+    }
+
+    .sidebar-actions {
+      padding: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-new-chat {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: filter 0.2s ease;
+    }
+
+    .btn-new-chat:hover {
+      filter: brightness(1.08);
+    }
+
     .main-content {
       flex: 1;
       display: flex;
@@ -41,17 +139,36 @@
     .header {
       padding: 1.5rem;
       border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
     }
-    .header h1 {
+    .header-text h1 {
       margin: 0 0 0.25rem;
       font-size: 1.35rem;
       font-weight: 600;
       letter-spacing: -0.02em;
     }
-    .header p {
+    .header-text p {
       margin: 0;
       font-size: 0.9rem;
       color: var(--muted);
+    }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .icon-btn:hover {
+      background: var(--user-bg);
+      border-color: var(--accent);
     }
     .messages-container {
       flex: 1;
@@ -177,10 +294,33 @@
 <body>
   <div class="container">
 
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="sidebar-header">Chat History</div>
+        <div class="sidebar-content" id="conversationsList">
+          <p style="color: var(--muted); font-size: 0.85rem; padding: 1rem; text-align: center;">
+            No conversations yet.
+          </p>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn-new-chat" onclick="startNewChat()">+ New Chat</button>
+        </div>
+      </div>
+    </div>
+
     <div class="main-content">
       <div class="header">
-        <h1>ACUBOT</h1>
-        <p>Hello! Ask about Acibadem University.</p>
+        <button id="sidebarToggle" class="icon-btn" title="Geçmişi Gizle/Göster">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="header-text">
+          <h1>ACUBOT</h1>
+          <p>Hello! Ask about Acibadem University.</p>
+        </div>
       </div>
       <div class="messages-container" id="messagesContainer"></div>
       <div class="composer">
@@ -196,10 +336,103 @@
   </div>
   <script>
     let chatHistory = [];
+    let currentConversationId = null;
+    let isNewConversation = false;
     const apiBaseUrl = '/api/chat';
 
     function getCookie(n){let v=null;if(document.cookie&&document.cookie!==''){document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'=')){v=decodeURIComponent(c.substring(n.length+1));}});}return v;}
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return diffMins + 'm ago';
+      if (diffHours < 24) return diffHours + 'h ago';
+      if (diffDays < 7) return diffDays + 'd ago';
+
+      return date.toLocaleDateString();
+    }
+
+    async function loadConversations() {
+      try {
+        const r = await fetch(`${apiBaseUrl}/conversations/`, { credentials: 'same-origin' });
+        if (!r || !r.ok) throw new Error('Failed to load conversations');
+
+        const conversations = await r.json();
+        const container = document.getElementById('conversationsList');
+
+        if (conversations.length === 0) {
+          container.innerHTML = '<p style="color: var(--muted); font-size: 0.85rem; padding: 1rem; text-align: center;">No conversations yet.</p>';
+          return;
+        }
+
+        container.innerHTML = conversations.map(conv => `
+          <div class="conversation-item ${currentConversationId === conv.id ? 'active' : ''}" onclick="loadConversation(${conv.id})">
+            <div class="timestamp">${formatDate(conv.updated_at)}</div>
+            <div class="preview">${conv.first_message || 'Empty conversation'}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading conversations:', err);
+      }
+    }
+
+    async function loadConversation(conversationId) {
+      try {
+        const r = await fetch(`${apiBaseUrl}/conversations/${conversationId}/`, { credentials: 'same-origin' });
+        if (!r || !r.ok) throw new Error('Failed to load conversation');
+
+        const conversation = await r.json();
+        currentConversationId = conversationId;
+        isNewConversation = false;
+
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
+
+        chatHistory = [];
+
+        conversation.messages.forEach(msg => {
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `message ${msg.role}`;
+          const bubble = document.createElement('div');
+          bubble.className = `bubble ${msg.role}`;
+          bubble.textContent = msg.text;
+          msgDiv.appendChild(bubble);
+          container.appendChild(msgDiv);
+
+          chatHistory.push({ role: msg.role, text: msg.text });
+        });
+
+        container.scrollTop = container.scrollHeight;
+
+        document.querySelectorAll('.conversation-item').forEach(item => {
+          item.classList.remove('active');
+          const handler = item.getAttribute('onclick') || '';
+          if (handler.includes('loadConversation(' + conversationId + ')')) {
+            item.classList.add('active');
+          }
+        });
+
+        loadConversations();
+      } catch (err) {
+        console.error('Error loading conversation:', err);
+      }
+    }
+
+    function startNewChat() {
+      chatHistory = [];
+      currentConversationId = null;
+      isNewConversation = true;
+      document.getElementById('messagesContainer').innerHTML = '';
+      document.getElementById('message').focus();
+      loadConversations();
+    }
 
     async function sendMessage(e){
       e.preventDefault();
@@ -232,28 +465,76 @@
         const h = {'Content-Type':'application/json'};
         if(csrfToken) h['X-CSRFToken'] = csrfToken;
         
-        const payload = { message: m, history: chatHistory };
-        
+        const payload = { message: m, history: chatHistory, new_conversation: isNewConversation };
+
         const r = await fetch(`${apiBaseUrl}/ask/`, {
           method: 'POST',
           headers: h,
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          credentials: 'same-origin'
         });
 
         if(!r||!r.ok){
           throw new Error('Network response was not ok');
         }
         
-        const data = await r.json();
-        const botResponse = data.response;
-        
         l.className = 'message assistant';
         l.innerHTML = '';
         const lb = document.createElement('div');
         lb.className = 'bubble assistant';
-        lb.textContent = botResponse;
         l.appendChild(lb);
         c.scrollTop = c.scrollHeight;
+
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let botResponse = '';
+        // NDJSON arrives in arbitrary network chunks — a single read() may
+        // contain part of one JSON object, several whole ones, or end mid-
+        // line. Buffer everything and only parse complete newline-delimited
+        // pieces so chunk-boundary splits do not corrupt the stream.
+        let buffer = '';
+
+        while(true) {
+            const {value, done} = await reader.read();
+            if(done) {
+                // Flush whatever is left in the buffer (final line without \n).
+                if (buffer.trim()) {
+                    try {
+                        const parsed = JSON.parse(buffer);
+                        if (parsed.type === "chunk") {
+                            botResponse += parsed.text;
+                        } else if (parsed.type === "done") {
+                            botResponse = parsed.text;
+                        }
+                        lb.textContent = botResponse;
+                    } catch(e) {
+                        console.warn("Tail parse skipped:", e, buffer);
+                    }
+                }
+                break;
+            }
+            buffer += decoder.decode(value, {stream: true});
+            let nl;
+            while ((nl = buffer.indexOf('\n')) !== -1) {
+                const line = buffer.slice(0, nl);
+                buffer = buffer.slice(nl + 1);
+                if (line.trim() === '') continue;
+                try {
+                    const parsed = JSON.parse(line);
+                    if (parsed.type === "chunk") {
+                        botResponse += parsed.text;
+                        lb.textContent = botResponse;
+                        c.scrollTop = c.scrollHeight;
+                    } else if (parsed.type === "done") {
+                        botResponse = parsed.text;
+                        lb.textContent = botResponse;
+                        c.scrollTop = c.scrollHeight;
+                    }
+                } catch(e) {
+                    console.warn("Parse skipped:", e, line);
+                }
+            }
+        }
         
         chatHistory.push({ role: 'user', text: m });
         chatHistory.push({ role: 'assistant', text: botResponse });
@@ -261,6 +542,9 @@
         if (chatHistory.length > 50) {
             chatHistory = chatHistory.slice(-50);
         }
+
+        isNewConversation = false;
+        loadConversations();
 
       }catch(er){
         console.error('Error:',er);
@@ -274,6 +558,19 @@
     }
     
     document.addEventListener('DOMContentLoaded',()=>{
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggle');
+
+      const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+      if (isCollapsed) {
+        sidebar.classList.add('collapsed');
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+      });
+
       const textarea = document.getElementById('message');
       textarea.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -281,6 +578,9 @@
           document.querySelector('form.compose').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
         }
       });
+
+      // Load conversations when page loads
+      loadConversations();
     });
   </script>
 </body>

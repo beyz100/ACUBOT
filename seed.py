@@ -114,6 +114,17 @@ def seed_courses(departments, flush=False):
 
     rows = _load_json('courses.json')
     if rows is None:
+        rows =[]
+
+    bologna_path = Path(__file__).resolve().parent / 'bologna_data.json'
+    if bologna_path.exists():
+        with open(bologna_path, 'r', encoding='utf-8') as f:
+            bologna_rows = json.load(f)
+            rows.extend(bologna_rows)
+            print(f"  📥  bologna_data.json üzerinden {len(bologna_rows)} gerçek ders dahil edildi.")
+
+    if not rows:
+        print("  ⚠  Yüklenecek ders bulunamadı.")
         return
 
     added = 0
@@ -176,6 +187,39 @@ def seed_university_info(flush=False):
     print(f"\n  📊  Sonuç: {added} yeni, {updated} güncellendi.")
 
 
+def seed_scraper_data():
+    scraper_path = Path(__file__).resolve().parent / 'acibadem_data.json'
+    if not scraper_path.exists():
+        return
+    with open(scraper_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    contact_info = data.get("contact_info", {})
+    if "bilgisayar_muhendisligi_bolum_baskani" in contact_info:
+        UniversityInfo.objects.update_or_create(
+            category="academic",
+            key="computer_engineering_head",
+            defaults={
+                "value": f"Bilgisayar Mühendisliği Bölüm Başkanı: {contact_info['bilgisayar_muhendisligi_bolum_baskani']}",
+                "keywords": "bilgisayar mühendisliği başkanı, computer engineering head, department head",
+            }
+        )
+        print("  ✅  Scraper'dan Bilgisayar Müh. Bölüm Başkanı güncellendi.")
+
+    if "bilgisayar_muhendisligi_akademik_kadro" in contact_info:
+        staff_list = contact_info["bilgisayar_muhendisligi_akademik_kadro"]
+        staff_str = ", ".join(staff_list)
+        UniversityInfo.objects.update_or_create(
+            category="academic",
+            key="computer_engineering_staff",
+            defaults={
+                "value": f"Bilgisayar Mühendisliği Akademik Kadrosu: {staff_str}",
+                "keywords": "bilgisayar mühendisliği akademik kadro, akademik personeli, hocaları, hocalar, academic staff, professors, faculty members, bilgisayar müh akademik kadro",
+            }
+        )
+        print("  ✅  Scraper'dan Bilgisayar Müh. Akademik Kadrosu güncellendi.")
+
+
 def run_seeder(only_courses=False, only_university=False, flush=False):
     print("\n🚀  ACU ChatBot — Data Pipeline başlatılıyor...")
 
@@ -186,6 +230,7 @@ def run_seeder(only_courses=False, only_university=False, flush=False):
 
     if not only_courses:
         seed_university_info(flush=flush)
+        seed_scraper_data()
 
     print("\n" + "=" * 60)
     print("✨  Data Pipeline tamamlandı!")

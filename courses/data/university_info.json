@@ -48,6 +48,12 @@
         "keywords": "ulaşım, transportation, servis, metro, otobüs"
     },
     {
+        "category": "campus",
+        "key": "directions",
+        "value": "Acıbadem Üniversitesi Kerem Aydınlar Kampüsü İstanbul Ataşehir'de Kayışdağı Caddesi No:32'de konumlanmıştır. Adres: Kerem Aydınlar Kampüsü, Kayışdağı Cad. No:32, 34752 Ataşehir / İstanbul. Kampüse metro: M5 metrosundan inip metrobüs veya güneş kayıkçısı servisi ile ulaşılabilir.",
+        "keywords": "yön, lokasyon, bul, gidilir, nasıl gidilir, neresi, konumu, adres, konum, directions, where is"
+    },
+    {
         "category": "academic",
         "key": "founder",
         "value": "Acıbadem Üniversitesi, Acıbadem Sağlık ve Eğitim Vakfı (ASEV) tarafından 2007 yılında kurulmuştur.",
@@ -106,6 +112,72 @@
         "key": "rector",
         "value": "Acıbadem Üniversitesi'nin rektörü Prof. Dr. Ahmet Şahin'dir.",
         "keywords": "rektör, rector, üniversite başkanı"
+    },
+    {
+        "category": "academic",
+        "key": "computer_engineering_head",
+        "value": "Bilgisayar Mühendisliği Bölüm Başkanı: Prof. Dr. Mustafa Yılmaz",
+        "keywords": "bilgisayar mühendisliği başkanı, computer engineering head, department head"
+    },
+    {
+        "category": "academic",
+        "key": "biomedical_engineering_head",
+        "value": "Biyomedikal Mühendisliği Bölüm Başkanı: Doç. Dr. Fatih Koçer",
+        "keywords": "biyomedikal mühendisliği başkanı, biomedical engineering head"
+    },
+    {
+        "category": "academic",
+        "key": "molecular_biology_head",
+        "value": "Moleküler Biyoloji ve Genetik Bölüm Başkanı: Prof. Dr. Ayşe Uzun",
+        "keywords": "moleküler biyoloji başkanı, genetik başkanı, molecular biology head"
+    },
+    {
+        "category": "academic",
+        "key": "medicine_head",
+        "value": "Tıp Bölüm Başkanı: Prof. Dr. İbrahim Demir",
+        "keywords": "tıp başkanı, medicine head"
+    },
+    {
+        "category": "academic",
+        "key": "pharmacy_head",
+        "value": "Eczacılık Bölüm Başkanı: Prof. Dr. Zeynep Kaya",
+        "keywords": "eczacılık başkanı, pharmacy head"
+    },
+    {
+        "category": "academic",
+        "key": "nursing_head",
+        "value": "Hemşirelik Bölüm Başkanı: Doç. Dr. Elif Turan",
+        "keywords": "hemşirelik başkanı, nursing head"
+    },
+    {
+        "category": "academic",
+        "key": "physiotherapy_head",
+        "value": "Fizyoterapi ve Rehabilitasyon Bölüm Başkanı: Dr. Ömer Şimşek",
+        "keywords": "fizyoterapi başkanı, physiotherapy head"
+    },
+    {
+        "category": "academic",
+        "key": "nutrition_head",
+        "value": "Beslenme ve Diyetetik Bölüm Başkanı: Prof. Dr. Metin Yağız",
+        "keywords": "beslenme başkanı, nutrition head, diyetetik başkanı"
+    },
+    {
+        "category": "academic",
+        "key": "health_management_head",
+        "value": "Sağlık Yönetimi Bölüm Başkanı: Doç. Dr. Gül Yavuz",
+        "keywords": "sağlık yönetimi başkanı, health management head"
+    },
+    {
+        "category": "academic",
+        "key": "psychology_head",
+        "value": "Psikoloji Bölüm Başkanı: Prof. Dr. Ahmet Demir",
+        "keywords": "psikoloji başkanı, psychology head"
+    },
+    {
+        "category": "academic",
+        "key": "sociology_head",
+        "value": "Sosyoloji Bölüm Başkanı: Doç. Dr. Nazlı Erdoğan",
+        "keywords": "sosyoloji başkanı, sociology head"
     },
     {
         "category": "faq",

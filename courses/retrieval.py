@@ -35,25 +35,23 @@ logger = logging.getLogger(__name__)
 # fallback for cases where trigram similarity is too weak (e.g. "telefon"
 # vs. key="phone").
 INTENT_TO_INFO_CATEGORY: dict[str, str] = {
-    # contact
     "telefon": "contact", "tel": "contact", "phone": "contact", "telephone": "contact",
     "eposta": "contact", "e-posta": "contact", "email": "contact", "mail": "contact",
     "adres": "contact", "address": "contact", "location": "contact", "konum": "contact",
     "iletişim": "contact", "contact": "contact",
-    # admission
     "kayıt": "admission", "başvuru": "admission", "kabul": "admission",
     "admission": "admission", "apply": "admission", "register": "admission",
     "kontenjan": "admission", "puan": "admission",
-    # campus
     "kampüs": "campus", "campus": "campus", "kütüphane": "campus", "library": "campus",
     "yurt": "campus", "dormitory": "campus", "ulaşım": "campus", "transportation": "campus",
-    "yemekhane": "campus", "cafeteria": "campus",
-    # academic / general
+    "yemekhane": "campus", "cafeteria": "campus", "gidilir": "campus", "nasıl": "campus",
+    "neresi": "campus", "yön": "campus", "directions": "campus",
     "rektör": "academic", "rector": "academic",
     "kurucu": "academic", "founder": "academic",
     "tarihçe": "academic", "history": "academic",
     "burs": "academic", "scholarship": "academic",
     "ücret": "academic", "tuition": "academic", "fee": "academic", "harç": "academic",
+    "başkanı": "academic", "başkan": "academic", "head": "academic", "department head": "academic",
 }
 
 
@@ -226,6 +224,32 @@ _FALL_WORDS = {"güz", "guz", "fall"}
 _SPRING_WORDS = {"bahar", "spring"}
 _FIRST_YEAR_WORDS = {"birinci sınıf", "1. sınıf", "first year", "1st year"}
 
+# Words that, on their own, do NOT indicate the user is asking for a specific
+# topic — they are filler around the real intent ("hangi dersler var",
+# "bölümündeki tüm dersleri", "courses are there", ...). When the residual
+# query (after stripping the matched department/faculty name) contains only
+# these tokens, the search treats it as "list everything in this scope"
+# instead of running a topical filter that would return zero rows.
+_TOPIC_FILLER_WORDS: set[str] = {
+    # course/department vocab
+    "ders", "dersi", "dersler", "dersleri",
+    "course", "courses", "class", "classes",
+    "bölüm", "bölümü", "bölümünde", "bölümündeki", "bölümleri",
+    "department", "departments",
+    "fakülte", "fakültesi", "fakültesinde", "fakülteleri",
+    "faculty", "faculties",
+    "müfredat", "müfredatı", "curriculum", "katalog", "kataloğu",
+    "program", "programı", "programları",
+    # quantifiers / scope words
+    "tüm", "bütün", "hepsi", "all", "every", "any",
+    "list", "show", "give", "tell",
+    # generic interrogatives
+    "neler", "ne", "nedir", "hangi", "kaç", "what", "which", "are", "is", "there",
+    # filler / connectives
+    "var", "mı", "mi", "mu", "mü", "ile", "için",
+    "the", "a", "an", "of", "in", "at", "on", "to",
+}
+
 
 def _detect_semesters(query: str) -> set[int] | None:
     """Return the set of semester numbers the user is asking about, or None
@@ -266,12 +290,24 @@ def _retrieve_courses(
     limit: int,
 ) -> list[Course]:
     """Find the courses most relevant to the query, optionally pre-filtered to
-    a department or faculty."""
+    a department or faculty. Excludes electives and internships."""
     base = Course.objects.select_related("department__faculty")
     if department is not None:
         base = base.filter(department=department)
     elif faculty is not None:
         base = base.filter(department__faculty=faculty)
+
+    # Filter out non-course entries (electives, internships, etc.)
+    exclude_keywords = [
+        'seçmeli', 'secmeli', 'elective',
+        'staj', 'internship',
+        'mezuniyet', 'graduation',
+        'seminer', 'seminar',
+    ]
+    exclude_q = Q()
+    for keyword in exclude_keywords:
+        exclude_q |= Q(name__icontains=keyword)
+    base = base.exclude(exclude_q)
 
     semesters = _detect_semesters(query)
     if semesters is not None:
@@ -279,9 +315,13 @@ def _retrieve_courses(
 
     expanded = expand_query(query)
     residual = _residual_query(query, department, faculty)
-    has_topical = len(residual) >= 3 and not residual.lower() in {
-        "ders", "dersler", "dersleri", "courses", "course",
-    }
+    # Detect whether the residual is just filler ("bölümündeki dersler", "tüm
+    # dersleri neler", ...) — in which case the user is really asking for the
+    # whole catalogue and we should not run a topical filter that would
+    # silently return zero rows.
+    residual_tokens = set(re.findall(r"\w+", residual.lower()))
+    non_filler = residual_tokens - _TOPIC_FILLER_WORDS
+    has_topical = bool(non_filler)
 
     # If the user is asking *exclusively* about a department's catalogue and
     # gave no topical hint, return the entire catalogue ordered by code.
@@ -295,10 +335,11 @@ def _retrieve_courses(
     trigram = _course_trigram(residual or query, base, limit * 2)
     merged = _merge_courses(full_text, trigram, limit)
 
-    # If the search yielded nothing but we are inside a department, fall back
-    # to the catalogue so the LLM still has context to work with.
+    # Department/faculty was matched but the topical filter found nothing —
+    # fall back to the whole department catalogue so the LLM still has data
+    # to ground its answer in (instead of hallucinating from an empty list).
     if not merged and (department is not None or faculty is not None):
-        return list(base.order_by("code")[:limit])
+        return list(base.order_by("semester", "code")[:limit])
     return merged
 
 
@@ -320,11 +361,13 @@ def _retrieve_university_info(query: str, limit: int) -> list[UniversityInfo]:
         intent_words = {
             word for word in INTENT_TO_INFO_CATEGORY if word in lower
         }
+        query_tokens = set(expanded.lower().split())
         scored: list[tuple[int, UniversityInfo]] = []
         for info in UniversityInfo.objects.filter(category__in=intent_categories):
             haystack = (info.key + " " + info.keywords).lower()
-            score = sum(1 for w in intent_words if w in haystack)
-            scored.append((score, info))
+            intent_score = sum(1 for w in intent_words if w in haystack)
+            overlap_score = sum(1 for w in query_tokens if w in haystack)
+            scored.append((intent_score * 10 + overlap_score, info))
         scored.sort(key=lambda t: (-t[0], t[1].key))
         intent_matches = [info for _, info in scored]
 
@@ -413,7 +456,7 @@ def retrieve(query: str) -> RetrievalResult:
     # context window (~4096 tokens for the default 3B model). When the user
     # asks for "all courses of department X" the department-scoping branch
     # already returns the full catalogue, so this cap rarely bites.
-    courses = _retrieve_courses(query, department, faculty, limit=50)
+    courses = _retrieve_courses(query, department, faculty, limit=150)
 
     # When the user asks "what faculties" / "list all faculties" we cannot
     # rely on trigram similarity (the literal word "faculties" doesn't match
@@ -515,18 +558,71 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
 
     if result.courses:
         rows = []
+        # Group courses by base name (e.g., "Matematik" for "Matematik 1"/"Matematik 2")
+        # Also match by code similarity (MAT101/MAT102, MAT201/MAT202, etc.)
+        course_groups: dict[str, list[tuple[int, Course]]] = {}
+
         for c in result.courses:
-            row = f"- {c.code} {c.name}"
-            if c.name_en:
-                row += f" / {c.name_en}"
-            extras: list[str] = []
-            if c.ects:
-                extras.append(f"{c.ects} ECTS")
-            if c.semester:
-                extras.append(f"semester {c.semester}")
-            extras.append(f"dept: {c.department.name}")
-            row += f" ({', '.join(extras)})"
-            rows.append(row)
+            # Try to extract part number from name (e.g., "Matematik 1" → "Matematik", 1)
+            name_match = re.match(r'^(.+?)\s+([12])$', c.name.strip())
+            if name_match:
+                base_name = name_match.group(1)
+                part_num = int(name_match.group(2))
+            else:
+                base_name = c.name
+                part_num = 0
+
+            if base_name not in course_groups:
+                course_groups[base_name] = []
+            course_groups[base_name].append((part_num, c))
+
+        # Format rows: merge paired courses (1+2), keep singles
+        for base_name in sorted(course_groups.keys()):
+            group = course_groups[base_name]
+
+            # Check if we have both part 1 and 2
+            has_part_1 = any(p == 1 for p, _ in group)
+            has_part_2 = any(p == 2 for p, _ in group)
+
+            if len(group) == 2 and has_part_1 and has_part_2:
+                # Both parts 1 and 2 exist — merge them
+                c1 = next(c for p, c in group if p == 1)
+                c2 = next(c for p, c in group if p == 2)
+
+                # Show as "Code: Name 1-2"
+                row = f"- {c1.code}/{c2.code} {base_name} 1-2"
+                if c1.name_en or c2.name_en:
+                    en_name = c1.name_en or c2.name_en
+                    row += f" / {en_name}"
+
+                # Use ECTS from part 1 (or combine if different)
+                ects_str = f"{c1.ects}" if c1.ects else ""
+                if c2.ects and c1.ects and c1.ects != c2.ects:
+                    ects_str = f"{c1.ects}+{c2.ects}"
+
+                extras: list[str] = []
+                if ects_str:
+                    extras.append(f"{ects_str} ECTS")
+                if c1.semester:
+                    extras.append(f"semester {c1.semester}")
+                extras.append(f"dept: {c1.department.name}")
+                row += f" ({', '.join(extras)})"
+                rows.append(row)
+            else:
+                # Single course or no pairing - list each separately
+                for part_num, c in sorted(group, key=lambda x: x[0] if x[0] > 0 else 999):
+                    row = f"- {c.code} {c.name}"
+                    if c.name_en:
+                        row += f" / {c.name_en}"
+                    extras: list[str] = []
+                    if c.ects:
+                        extras.append(f"{c.ects} ECTS")
+                    if c.semester:
+                        extras.append(f"semester {c.semester}")
+                    extras.append(f"dept: {c.department.name}")
+                    row += f" ({', '.join(extras)})"
+                    rows.append(row)
+
         blocks.append("Courses:\n" + "\n".join(rows))
 
     if result.university_info:
