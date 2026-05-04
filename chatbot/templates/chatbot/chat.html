@@ -530,7 +530,7 @@
     // --- SOHBET FONKSİYONLARI ---
     let chatHistory =[];
     let currentConversationId = null;
-    let isNewConversation = false;
+    let isNewConversation = true;  // Start with true so initial conversation creates properly
     const apiBaseUrl = '/api/chat';
 
     function getCookie(n){let v=null;if(document.cookie&&document.cookie!==''){document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'=')){v=decodeURIComponent(c.substring(n.length+1));}});}return v;}

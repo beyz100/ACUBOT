@@ -502,6 +502,8 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
             line = f"Faculty: {fac.name}"
             if fac.name_en:
                 line += f" ({fac.name_en})"
+            if fac.description:
+                line += f" — {fac.description}"
             scope_lines.append(line)
         if result.matched_department:
             dep = result.matched_department
@@ -509,6 +511,8 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
             if dep.name_en:
                 line += f" ({dep.name_en})"
             line += f" — Faculty: {dep.faculty.name}"
+            if dep.description:
+                line += f" — {dep.description}"
             scope_lines.append(line)
         blocks.append("Scope:\n" + "\n".join(scope_lines))
 
@@ -530,6 +534,8 @@ def format_for_llm(result: RetrievalResult, language: str) -> str:
             if dep.name_en:
                 row += f" / {dep.name_en}"
             row += f" (Faculty: {dep.faculty.name})"
+            if dep.description:
+                row += f" — {dep.description}"
             rows.append(row)
         blocks.append("Departments:\n" + "\n".join(rows))
 

@@ -110,6 +110,10 @@ def quick_ask(request):
 
 @api_view(['POST'])
 def chat_with_acubot(request):
+    # Ensure session is created before any session operations
+    if not request.session.session_key:
+        request.session.create()
+
     user_message = (request.data.get('message') or '').strip()
     client_history = request.data.get('history', [])
     new_conversation_raw = request.data.get('new_conversation', False)
