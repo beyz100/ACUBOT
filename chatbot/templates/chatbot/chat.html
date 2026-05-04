@@ -8,22 +8,18 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     :root {
-      /* Renk Şeması: Mavi, Turuncu, Beyaz */
       --bg: #f4f7fa;
       --surface: #ffffff;
       --border: #e2e8f0;
       --text: #1e293b;
       --text-light: #ffffff;
       --muted: #64748b;
-
       --blue: #0f4c81;
       --blue-hover: #0b3861;
       --orange: #f26d21;
       --orange-hover: #d95a16;
-
       --user-bg: var(--blue);
       --bot-bg: #ffffff;
-
       --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
       --font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -52,7 +48,6 @@
       background: var(--bg);
     }
 
-    /* Sol Panel (Sidebar) */
     .sidebar {
       width: 280px;
       background: var(--surface);
@@ -90,6 +85,10 @@
     }
 
     .conversation-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
       padding: 0.75rem 1rem;
       margin-bottom: 0.5rem;
       border-radius: 8px;
@@ -109,6 +108,11 @@
       background: #f8fafc;
       border-left: 4px solid var(--orange);
       border-color: var(--blue);
+    }
+
+    .conversation-content {
+      flex: 1;
+      overflow: hidden;
     }
 
     .conversation-item .timestamp {
@@ -133,6 +137,22 @@
       color: var(--text);
     }
 
+    .delete-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      opacity: 0.4;
+    }
+    .conversation-item:hover .delete-btn { opacity: 1; }
+    .delete-btn:hover { color: #ef4444; background: #fee2e2; }
+
     .sidebar-actions {
       padding: 1rem;
       border-top: 1px solid var(--border);
@@ -156,7 +176,6 @@
     .btn-new-chat:hover { background: var(--blue-hover); }
     .btn-new-chat:active { transform: scale(0.98); }
 
-    /* Ana İçerik */
     .main-content {
       flex: 1;
       display: flex;
@@ -205,9 +224,7 @@
       color: var(--blue);
     }
 
-    .header-text h1 span {
-      color: var(--orange);
-    }
+    .header-text h1 span { color: var(--orange); }
 
     .header-text p {
       margin: 0;
@@ -216,7 +233,6 @@
       font-weight: 500;
     }
 
-    /* Dil Değiştirme Butonu */
     .lang-toggle {
       background: transparent;
       border: 2px solid var(--border);
@@ -229,18 +245,9 @@
       transition: all 0.2s ease;
     }
 
-    .lang-toggle:hover {
-      border-color: var(--blue);
-      background: #f8fafc;
-    }
+    .lang-toggle:hover { border-color: var(--blue); background: #f8fafc; }
+    .lang-toggle.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 
-    .lang-toggle.active {
-      background: var(--blue);
-      color: #fff;
-      border-color: var(--blue);
-    }
-
-    /* Mesajlaşma Alanı */
     .messages-container {
       flex: 1;
       overflow-y: auto;
@@ -261,11 +268,7 @@
       font-weight: 500;
     }
 
-    .message {
-      display: flex;
-      width: 100%;
-    }
-
+    .message { display: flex; width: 100%; }
     .message.user { justify-content: flex-end; }
 
     .bubble {
@@ -291,7 +294,6 @@
       border-left: 4px solid var(--orange);
     }
 
-    /* Girdi / Yazma Alanı */
     .composer {
       padding: 1.25rem;
       background: var(--surface);
@@ -333,10 +335,7 @@
       box-shadow: 0 0 0 3px rgba(15, 76, 129, 0.1);
     }
 
-    .actions {
-      display: flex;
-      gap: 0.5rem;
-    }
+    .actions { display: flex; gap: 0.5rem; }
 
     button[type="submit"] {
       background: var(--orange);
@@ -398,9 +397,7 @@
       animation: spin 1s linear infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .visually-hidden {
       position: absolute;
@@ -418,7 +415,6 @@
 <body>
   <div class="container">
 
-    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
       <div class="sidebar-inner">
         <div class="sidebar-header" data-i18n="sidebarTitle">Geçmiş Sohbetler</div>
@@ -433,7 +429,6 @@
       </div>
     </div>
 
-    <!-- Main Chat Area -->
     <div class="main-content">
       <div class="header">
         <button id="sidebarToggle" class="icon-btn" title="Geçmişi Gizle/Göster">
@@ -447,8 +442,6 @@
           <h1>ACU<span>BOT</span></h1>
           <p data-i18n="subtitle">Merhaba! Acıbadem Üniversitesi hakkında dilediğinizi sorabilirsiniz.</p>
         </div>
-
-        <!-- Dil Değiştirme (Language Toggle) -->
         <button id="langToggle" class="lang-toggle" onclick="toggleLanguage()">EN</button>
       </div>
 
@@ -467,7 +460,6 @@
   </div>
 
   <script>
-    // --- ÇOKLU DİL (i18n) SÖZLÜĞÜ ---
     const dict = {
       tr: {
         sidebarTitle: "Geçmiş Sohbetler",
@@ -482,7 +474,9 @@
         timeJustNow: "Az önce",
         timeMins: "d önce",
         timeHours: "s önce",
-        timeDays: "g önce"
+        timeDays: "g önce",
+        deleteChat: "Sohbeti Sil",
+        confirmDelete: "Bu sohbeti silmek istediğinize emin misiniz?"
       },
       en: {
         sidebarTitle: "Chat History",
@@ -497,27 +491,22 @@
         timeJustNow: "Just now",
         timeMins: "m ago",
         timeHours: "h ago",
-        timeDays: "d ago"
+        timeDays: "d ago",
+        deleteChat: "Delete Chat",
+        confirmDelete: "Are you sure you want to delete this chat?"
       }
     };
 
     let currentLang = localStorage.getItem('acubot_lang') || 'tr';
 
     function applyLanguage() {
-      // Data attribute'a sahip elemanları çevir
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         el.textContent = dict[currentLang][key];
       });
-
-      // Textarea placeholder'ını çevir
       document.getElementById('message').setAttribute('placeholder', dict[currentLang].placeholder);
-
-      // Üst sağdaki butonun metnini diğer dili işaret edecek şekilde değiştir
       const btn = document.getElementById('langToggle');
       btn.textContent = currentLang === 'tr' ? 'EN' : 'TR';
-
-      // Kayıtları yeniden yükle ki saat ve empty chat kısımları o dilde görünsün
       loadConversations();
     }
 
@@ -527,10 +516,9 @@
       applyLanguage();
     }
 
-    // --- SOHBET FONKSİYONLARI ---
-    let chatHistory =[];
+    let chatHistory = [];
     let currentConversationId = null;
-    let isNewConversation = true;  // Start with true so initial conversation creates properly
+    let isNewConversation = true;
     const apiBaseUrl = '/api/chat';
 
     function getCookie(n){let v=null;if(document.cookie&&document.cookie!==''){document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'=')){v=decodeURIComponent(c.substring(n.length+1));}});}return v;}
@@ -543,13 +531,11 @@
       const diffMins = Math.floor(diffMs / 60000);
       const diffHours = Math.floor(diffMs / 3600000);
       const diffDays = Math.floor(diffMs / 86400000);
-
       const d = dict[currentLang];
       if (diffMins < 1) return d.timeJustNow;
       if (diffMins < 60) return diffMins + d.timeMins;
       if (diffHours < 24) return diffHours + d.timeHours;
       if (diffDays < 7) return diffDays + d.timeDays;
-
       return date.toLocaleDateString();
     }
 
@@ -557,19 +543,26 @@
       try {
         const r = await fetch(`${apiBaseUrl}/conversations/`, { credentials: 'same-origin' });
         if (!r || !r.ok) throw new Error('Failed to load conversations');
-
         const conversations = await r.json();
         const container = document.getElementById('conversationsList');
-
         if (conversations.length === 0) {
           container.innerHTML = `<p style="color: var(--muted); font-size: 0.85rem; padding: 1rem; text-align: center;">${dict[currentLang].emptyChat}</p>`;
           return;
         }
-
         container.innerHTML = conversations.map(conv => `
           <div class="conversation-item ${currentConversationId === conv.id ? 'active' : ''}" onclick="loadConversation(${conv.id})">
-            <div class="timestamp">${formatDate(conv.updated_at)}</div>
-            <div class="preview">${conv.first_message || dict[currentLang].emptyPreview}</div>
+            <div class="conversation-content">
+              <div class="timestamp">${formatDate(conv.updated_at)}</div>
+              <div class="preview">${conv.first_message || dict[currentLang].emptyPreview}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteConversation(event, ${conv.id})" title="${dict[currentLang].deleteChat}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
           </div>
         `).join('');
       } catch (err) {
@@ -581,16 +574,12 @@
       try {
         const r = await fetch(`${apiBaseUrl}/conversations/${conversationId}/`, { credentials: 'same-origin' });
         if (!r || !r.ok) throw new Error('Failed to load conversation');
-
         const conversation = await r.json();
         currentConversationId = conversationId;
         isNewConversation = false;
-
         const container = document.getElementById('messagesContainer');
         container.innerHTML = '';
-
-        chatHistory =[];
-
+        chatHistory = [];
         conversation.messages.forEach(msg => {
           const msgDiv = document.createElement('div');
           msgDiv.className = `message ${msg.role}`;
@@ -599,12 +588,9 @@
           bubble.textContent = msg.text;
           msgDiv.appendChild(bubble);
           container.appendChild(msgDiv);
-
           chatHistory.push({ role: msg.role, text: msg.text });
         });
-
         container.scrollTop = container.scrollHeight;
-
         document.querySelectorAll('.conversation-item').forEach(item => {
           item.classList.remove('active');
           const handler = item.getAttribute('onclick') || '';
@@ -612,7 +598,6 @@
             item.classList.add('active');
           }
         });
-
         loadConversations();
       } catch (err) {
         console.error('Error loading conversation:', err);
@@ -620,7 +605,7 @@
     }
 
     function startNewChat() {
-      chatHistory =[];
+      chatHistory = [];
       currentConversationId = null;
       isNewConversation = true;
       document.getElementById('messagesContainer').innerHTML = '';
@@ -628,18 +613,40 @@
       loadConversations();
     }
 
-    async function sendMessage(e){
+    async function deleteConversation(e, id) {
+      e.stopPropagation();
+      if (!confirm(dict[currentLang].confirmDelete)) return;
+      try {
+        const h = {'Content-Type': 'application/json'};
+        if (csrfToken) h['X-CSRFToken'] = csrfToken;
+        const r = await fetch(`${apiBaseUrl}/conversations/${id}/`, {
+          method: 'DELETE',
+          headers: h,
+          credentials: 'same-origin'
+        });
+        if (r.ok) {
+          if (currentConversationId === id) {
+            startNewChat();
+          } else {
+            loadConversations();
+          }
+        }
+      } catch(err) {
+        console.error("Delete failed:", err);
+      }
+    }
+
+    async function sendMessage(e) {
       e.preventDefault();
       const c = document.getElementById('messagesContainer');
       const b = e.target.querySelector('button[type="submit"]');
       const t = document.getElementById('message');
       const m = t.value.trim();
-
-      if(!m) return;
+      if (!m) return;
       t.value = '';
       t.style.height = 'auto';
       b.disabled = true;
-      if(c.innerHTML.includes('empty-state')){c.innerHTML='';}
+      if (c.innerHTML.includes('empty-state')) { c.innerHTML = ''; }
 
       const u = document.createElement('div');
       u.className = 'message user';
@@ -656,22 +663,17 @@
       c.appendChild(l);
       c.scrollTop = c.scrollHeight;
 
-      try{
-        const h = {'Content-Type':'application/json'};
-        if(csrfToken) h['X-CSRFToken'] = csrfToken;
-
+      try {
+        const h = {'Content-Type': 'application/json'};
+        if (csrfToken) h['X-CSRFToken'] = csrfToken;
         const payload = { message: m, history: chatHistory, new_conversation: isNewConversation };
-
         const r = await fetch(`${apiBaseUrl}/ask/`, {
           method: 'POST',
           headers: h,
           body: JSON.stringify(payload),
           credentials: 'same-origin'
         });
-
-        if(!r||!r.ok){
-          throw new Error('Network response was not ok');
-        }
+        if (!r || !r.ok) { throw new Error('Network response was not ok'); }
 
         l.className = 'message assistant';
         l.innerHTML = '';
@@ -685,77 +687,62 @@
         let botResponse = '';
         let buffer = '';
 
-        while(true) {
-            const {value, done} = await reader.read();
-            if(done) {
-                if (buffer.trim()) {
-                    try {
-                        const parsed = JSON.parse(buffer);
-                        if (parsed.type === "chunk") {
-                            botResponse += parsed.text;
-                        } else if (parsed.type === "done") {
-                            botResponse = parsed.text;
-                        }
-                        lb.textContent = botResponse;
-                    } catch(e) {
-                        console.warn("Tail parse skipped:", e, buffer);
-                    }
-                }
-                break;
+        while (true) {
+          const {value, done} = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              try {
+                const parsed = JSON.parse(buffer);
+                if (parsed.type === "chunk") { botResponse += parsed.text; }
+                else if (parsed.type === "done") { botResponse = parsed.text; }
+                lb.textContent = botResponse;
+              } catch(e) { console.warn("Tail parse skipped:", e, buffer); }
             }
-            buffer += decoder.decode(value, {stream: true});
-            let nl;
-            while ((nl = buffer.indexOf('\n')) !== -1) {
-                const line = buffer.slice(0, nl);
-                buffer = buffer.slice(nl + 1);
-                if (line.trim() === '') continue;
-                try {
-                    const parsed = JSON.parse(line);
-                    if (parsed.type === "chunk") {
-                        botResponse += parsed.text;
-                        lb.textContent = botResponse;
-                        c.scrollTop = c.scrollHeight;
-                    } else if (parsed.type === "done") {
-                        botResponse = parsed.text;
-                        lb.textContent = botResponse;
-                        c.scrollTop = c.scrollHeight;
-                    }
-                } catch(e) {
-                    console.warn("Parse skipped:", e, line);
-                }
-            }
+            break;
+          }
+          buffer += decoder.decode(value, {stream: true});
+          let nl;
+          while ((nl = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, nl);
+            buffer = buffer.slice(nl + 1);
+            if (line.trim() === '') continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.type === "chunk") {
+                botResponse += parsed.text;
+                lb.textContent = botResponse;
+                c.scrollTop = c.scrollHeight;
+              } else if (parsed.type === "done") {
+                botResponse = parsed.text;
+                lb.textContent = botResponse;
+                c.scrollTop = c.scrollHeight;
+              }
+            } catch(e) { console.warn("Parse skipped:", e, line); }
+          }
         }
 
         chatHistory.push({ role: 'user', text: m });
         chatHistory.push({ role: 'assistant', text: botResponse });
-
-        if (chatHistory.length > 50) {
-            chatHistory = chatHistory.slice(-50);
-        }
-
+        if (chatHistory.length > 50) { chatHistory = chatHistory.slice(-50); }
         isNewConversation = false;
         loadConversations();
 
-      }catch(er){
-        console.error('Error:',er);
+      } catch(er) {
+        console.error('Error:', er);
         l.remove();
-        const ed=document.createElement('div');
-        ed.className='error';
-        ed.innerHTML=`<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> ${dict[currentLang].errorMsg} ${er.message}`;
+        const ed = document.createElement('div');
+        ed.className = 'error';
+        ed.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> ${dict[currentLang].errorMsg} ${er.message}`;
         c.appendChild(ed);
       }
-      b.disabled=false;
+      b.disabled = false;
     }
 
-    document.addEventListener('DOMContentLoaded',()=>{
+    document.addEventListener('DOMContentLoaded', () => {
       const sidebar = document.getElementById('sidebar');
       const toggleBtn = document.getElementById('sidebarToggle');
-
       const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-      if (isCollapsed) {
-        sidebar.classList.add('collapsed');
-      }
-
+      if (isCollapsed) { sidebar.classList.add('collapsed'); }
       toggleBtn.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
         localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
@@ -768,13 +755,11 @@
           document.querySelector('form.compose').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
         }
       });
-
       textarea.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
       });
 
-      // Dili uygula ve sohbetleri yükle
       applyLanguage();
     });
   </script>
