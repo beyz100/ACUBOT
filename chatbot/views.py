@@ -176,7 +176,7 @@ def list_conversations(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'DELETE'])
 def get_conversation(request, conversation_id):
     if not request.session.session_key:
         request.session.create()
@@ -193,6 +193,15 @@ def get_conversation(request, conversation_id):
             {"error": "Conversation not found or access denied."},
             status=status.HTTP_404_NOT_FOUND
         )
+
+    if request.method == 'DELETE':
+        conversation.delete()
+
+        if request.session.get(CONVERSATION_ID_SESSION_KEY) == conversation_id:
+            del request.session[CONVERSATION_ID_SESSION_KEY]
+            request.session.modified = True
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     serializer = ConversationSerializer(conversation)
     return Response(serializer.data, status=status.HTTP_200_OK)
